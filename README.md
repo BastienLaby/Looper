@@ -6,20 +6,20 @@ Looper
 Installation (linux only)
 
   Move to the cloning directory path :
-  cd cloning_path/Animus/
+  > cd cloning_path/Animus/
   
   If you don't have premake4, install it :
-  sudo apt-get install premake4
+  > sudo apt-get install premake4
   
   Generate makefile :
-  premake4 gmake
+  > premake4 gmake
   
   Compile and link :
-  make
+  > make
   
   This is a temporary issue to solve some library linking :
-  export LD_LIBRARY_PATH=cloning_path/Looper/lib/fmod/lib/:$LD_LIBRARY_PATH
-  export LD_LIBRARY_PATH=cloning_path/Looper/lib/opencv2/lib/:$LD_LIBRARY_PATH
+  > export LD_LIBRARY_PATH=cloning_path/Looper/lib/fmod/lib/:$LD_LIBRARY_PATH
+  > export LD_LIBRARY_PATH=cloning_path/Looper/lib/opencv2/lib/:$LD_LIBRARY_PATH
   
   Run the project :
-  ./Animusd
+  > ./Animusd
