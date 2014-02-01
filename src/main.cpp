@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
 		return (EXIT_FAILURE);
 	}
 
-	TTF_Font *police = TTF_OpenFont("/usr/share/fonts/truetype/capture-it-elementary/Capture_it.ttf", 12);
+	TTF_Font *police = TTF_OpenFont("media/font/captureit.ttf", 12);
 	if(!police){
 		std::cerr << "Erreur lors du chargement de la police." << std::endl;
 		return (EXIT_FAILURE);
