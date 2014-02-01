@@ -18,7 +18,8 @@ Installation (linux only)
   > make
   
   This is a temporary issue to solve some library linking :
-  > export LD_LIBRARY_PATH=cloning_path/Looper/lib/fmod/lib/:$LD_LIBRARY_PATH
+  > export LD_LIBRARY_PATH=cloning_path/Looper/lib/fmod/lib/:$LD_LIBRARY_PATH 
+  
   > export LD_LIBRARY_PATH=cloning_path/Looper/lib/opencv2/lib/:$LD_LIBRARY_PATH
   
   Run the project :
