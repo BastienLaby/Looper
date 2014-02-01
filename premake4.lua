@@ -7,7 +7,7 @@ solution "TablaturnSolution"
       kind "ConsoleApp"
       language "C++"
       files { "src/**" }
-      includedirs { "src", "common", "lib/fmod/inc", "lib/opencv2/include", "include"}
+      includedirs { "src", "common", "lib/fmod/inc", "lib/opencv2/include", "include/**", "include"}
       libdirs { "lib/**" }
 
       configuration { "linux" }

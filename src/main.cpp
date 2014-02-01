@@ -7,14 +7,16 @@
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_ttf.h>
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/opencv.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
 #include <sound/SoundPlayer.hpp>
+
+#include "fouch/Timer.hpp"
 
 #include <vector>
 #include <string>
@@ -148,9 +150,6 @@ int main(int argc, char* argv[]) {
 	sleep(1);
 	soundPlayer.play(0);
 
-	long timeStart = SDL_GetTicks();
-	int frames = 0;
-	float fps;
 	std::string caption;
 	SDL_Color textColor = {255, 255, 255};
 	SDL_Color bgColor = {0, 0, 0};
@@ -158,11 +157,17 @@ int main(int argc, char* argv[]) {
 	SDL_Surface* surfaceContent;
 	SDL_Surface* infos;
 
+	if(!fexists((IMG_PATH + "pattern_lite.png").c_str())){
+		if(verbose)		std::cerr<<"Unable to locate the file '"<<(IMG_PATH + "pattern_lite.png").c_str()<<"'"<<std::endl;
+		exit(-1);
+	}
+
+	fouch::Timer timer;
 	bool loop = true;
 	while(loop){
-		frames++;
 
 		// Load image model + capture webcam image
+		timer.breakpoint("Capture Images");
 		cv::Mat img_scene;
 		videoCaptor >> img_scene;
 
@@ -177,11 +182,7 @@ int main(int argc, char* argv[]) {
 		// DETECTION
 		// *****************************
 
-		if(!fexists((IMG_PATH + "pattern_lite.png").c_str())){
-			if(verbose)		std::cerr<<"Unable to locate the file '"<<(IMG_PATH + "pattern_lite.png").c_str()<<"'"<<std::endl;
-			exit(-1);
-		}
-
+		timer.breakpoint("Detect pattern");
 		Mat img_object = imread( (IMG_PATH + "pattern_lite.png").c_str());
 
 		if(!img_object.data)
@@ -238,6 +239,7 @@ int main(int argc, char* argv[]) {
 		if(verbose)		printf("-- Min dist : %f \n", min_dist );
 
 		//-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
+		timer.breakpoint("Drawing matches");
 		std::vector< DMatch > good_matches;
 
 		for( int i = 0; i < descriptors_object.rows; i++ )
@@ -301,6 +303,7 @@ int main(int argc, char* argv[]) {
 		//		}
 		//    }
 
+		timer.breakpoint("Convert format");
 		SDL_FillRect(screen,NULL, 0x000000);
 
 		//-- Show detected matches
@@ -312,6 +315,8 @@ int main(int argc, char* argv[]) {
 				img->widthStep,
 				0xff0000, 0x00ff00, 0x0000ff, 0);
 
+		timer.breakpoint("Display content");
+
 		SDL_BlitSurface(surfaceContent, NULL, screen, NULL);
 
 		if(fullscreen){
@@ -321,22 +326,18 @@ int main(int argc, char* argv[]) {
 		SDL_Flip(screen);
 		SDL_GL_SwapBuffers();
 
-		if (SDL_GetTicks()-timeStart>1000)
-		{
-			fps=1000.0f * (float)frames / (float) (SDL_GetTicks()-timeStart);
-			frames = 0;
-			timeStart=SDL_GetTicks();
-			if(verbose)		std::cerr<<"FPS : "<<fps<<std::endl;
-			ostringstream convert;
-			convert << fps;
-			if(!fullscreen){
-				caption = "Tablaturn - "+convert.str()+" FPS";
-				SDL_WM_SetCaption(caption.c_str(), NULL);
-			} else {
-				caption = convert.str()+" fps";
-				std::cerr<<caption<<std::endl;
-				infos = TTF_RenderText_Shaded(police, caption.c_str(), textColor, bgColor );
-			}
+		timer.breakpoint("Events Handling");
+
+		float fps = timer.fps();
+		ostringstream convert;
+		convert << fps;
+		if(!fullscreen){
+			caption = "Tablaturn - "+convert.str()+" FPS";
+			SDL_WM_SetCaption(caption.c_str(), NULL);
+		} else {
+			caption = convert.str()+" fps";
+			std::cerr<<caption<<std::endl;
+			infos = TTF_RenderText_Shaded(police, caption.c_str(), textColor, bgColor );
 		}
 
 		//Gestion des évenements

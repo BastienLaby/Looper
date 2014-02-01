@@ -29,7 +29,8 @@ obj/Debug/main.o: src/main.cpp lib/opencv2/include/opencv2/core/core.hpp \
  lib/opencv2/include/opencv2/nonfree/features2d.hpp \
  include/sound/SoundPlayer.hpp include/sound/fmod.hpp \
  include/sound/fmod.h include/sound/fmod_codec.h include/sound/fmod_dsp.h \
- include/sound/fmod_memoryinfo.h include/sound/fmod_errors.h
+ include/sound/fmod_memoryinfo.h include/sound/fmod_errors.h \
+ include/fouch/Timer.hpp
 
 lib/opencv2/include/opencv2/core/core.hpp:
 
@@ -102,3 +103,5 @@ include/sound/fmod_dsp.h:
 include/sound/fmod_memoryinfo.h:
 
 include/sound/fmod_errors.h:
+
+include/fouch/Timer.hpp:

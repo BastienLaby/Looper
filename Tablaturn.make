@@ -24,7 +24,7 @@ ifeq ($(config),debug)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnd
   DEFINES   += -DDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -Wall -g
   CXXFLAGS  += $(CFLAGS) 
@@ -46,7 +46,7 @@ ifeq ($(config),release)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnr
   DEFINES   += -DNDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2
   CXXFLAGS  += $(CFLAGS) 
@@ -68,7 +68,7 @@ ifeq ($(config),debug64)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnd
   DEFINES   += -DDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -Wall -g -m64
   CXXFLAGS  += $(CFLAGS) 
@@ -90,7 +90,7 @@ ifeq ($(config),release64)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnr
   DEFINES   += -DNDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m64
   CXXFLAGS  += $(CFLAGS) 
@@ -112,7 +112,7 @@ ifeq ($(config),debug32)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnd
   DEFINES   += -DDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -Wall -g -m32
   CXXFLAGS  += $(CFLAGS) 
@@ -134,7 +134,7 @@ ifeq ($(config),release32)
   TARGETDIR  = .
   TARGET     = $(TARGETDIR)/Tablaturnr
   DEFINES   += -DNDEBUG
-  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude
+  INCLUDES  += -Isrc -Icommon -Ilib/fmod/inc -Ilib/opencv2/include -Iinclude/fouch -Iinclude/sound -Iinclude
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m32
   CXXFLAGS  += $(CFLAGS) 
@@ -153,6 +153,7 @@ endif
 
 OBJECTS := \
 	$(OBJDIR)/main.o \
+	$(OBJDIR)/Timer.o \
 	$(OBJDIR)/SoundPlayer.o \
 
 RESOURCES := \
@@ -215,6 +216,9 @@ $(GCH): $(PCH)
 endif
 
 $(OBJDIR)/main.o: src/main.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+$(OBJDIR)/Timer.o: src/fouch/Timer.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/SoundPlayer.o: src/sound/SoundPlayer.cpp
