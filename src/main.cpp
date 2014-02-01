@@ -60,10 +60,10 @@ int main(int argc, char* argv[]) {
 	size_t cameraId = 0;
 	if(argc > 1)
 	{
-		if(argv[1] == "1") cameraId = 1;
-		if(argv[1] == "2") cameraId = 2;
-		if(argv[1] == "3") cameraId = 3;
-		if(argv[1] == "4") cameraId = 4;
+		if(strcmp(argv[1], "1") == 0) cameraId = 1;
+		if(strcmp(argv[1], "2") == 0) cameraId = 2;
+		if(strcmp(argv[1], "3") == 0) cameraId = 3;
+		if(strcmp(argv[1], "4") == 0) cameraId = 4;
 	}
 
 	std::cerr<<"Number of args : "<<argc<<std::endl;
@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
 		std::vector<Point2f> obj;
 		std::vector<Point2f> scene;
 
-		for( int i = 0; i < good_matches.size(); i++ )
+		for( size_t i = 0; i < good_matches.size(); i++ )
 		{
 			//-- Get the keypoints from the good matches
 			obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
@@ -287,7 +287,7 @@ int main(int argc, char* argv[]) {
 		line( img_matches, scene_corners[3] + Point2f( img_object.cols, 0), scene_corners[0] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
 
 		// TODO : verify the img_matches matrix isn't empty
-		unsigned char *input = (unsigned char*)(img_matches.data);
+//		unsigned char *input = (unsigned char*)(img_matches.data);
 		if(verbose) 	std::cerr<<"Size of captured image : "<<img_matches.cols<<" x "<<img_matches.rows<<std::endl;
 		//    if(verbose) {
 		//    	int i,j,r,g,b;
@@ -316,12 +316,13 @@ int main(int argc, char* argv[]) {
 				0xff0000, 0x00ff00, 0x0000ff, 0);
 
 		timer.breakpoint("Display content");
-
 		SDL_BlitSurface(surfaceContent, NULL, screen, NULL);
 
 		if(fullscreen){
 			SDL_BlitSurface(infos, NULL, screen, &messageOffset);
 		}
+
+		timer.breakpoint("Flip buffers  ");
 
 		SDL_Flip(screen);
 		SDL_GL_SwapBuffers();
@@ -336,7 +337,7 @@ int main(int argc, char* argv[]) {
 			SDL_WM_SetCaption(caption.c_str(), NULL);
 		} else {
 			caption = convert.str()+" fps";
-			std::cerr<<caption<<std::endl;
+			if(verbose)		std::cerr<<caption<<std::endl;
 			infos = TTF_RenderText_Shaded(police, caption.c_str(), textColor, bgColor );
 		}
 

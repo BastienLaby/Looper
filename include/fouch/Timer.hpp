@@ -58,7 +58,7 @@ public:
 	virtual ~Timer();
 
 	long breakpoint(const char* name);
-	long stopTimer(char* name = "");
+	long stopTimer(char* name = const_cast<char *>("") );
 
 	float fps();
 

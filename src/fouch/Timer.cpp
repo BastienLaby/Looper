@@ -42,9 +42,9 @@ Timer::~Timer() {
 
 
 long Timer::stopTimer(char* name){
-	if(name == "" && mLastBreakpoint == "" ){
+	if( strcmp(name, "") == 0 && mLastBreakpoint == "" ){
 		return 0;
-	} else if(name == ""){
+	} else if(strcmp(name, "") == 0){
 		name = (char*) mLastBreakpoint.c_str();
 	}
 
@@ -134,7 +134,7 @@ void Timer::dump(){
 	std::vector<std::pair<std::string, Breakpoint> > mapcopy(mBreakpoints.begin(), mBreakpoints.end());
 	std::sort(mapcopy.begin(), mapcopy.end(), comparator<std::string, Breakpoint>());
 
-	int i = 0;
+	size_t i = 0;
 	for(;i < mapcopy.size();++i) {
 		std::cout<<"["<<i<<"]\t"<<mapcopy[i].first<<" :\t"<<std::fixed<<(float)mapcopy[i].second.time/(duration*10.f);
 		std::cout<<"%\t"<<(float)(mapcopy[i].second.time)/1000.f<<"s\t"<<mapcopy[i].second.nbCall<<"\t"<<mapcopy[i].second.minTime<<"ms\t"<<mapcopy[i].second.maxTime<<"ms"<<std::endl;
