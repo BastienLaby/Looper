@@ -4,6 +4,8 @@
 #include "cameraparams.h"
 #include "patterndetector.h"
 
+#include "fouch/Timer.hpp"
+
 using namespace std;
 using namespace cv;
 using namespace ARma;
@@ -52,8 +54,9 @@ int main(int argc, char** argv) {
 	CvVideoWriter *video_writer = cvCreateVideoWriter( "output.avi", -1, 25, cvSize(640,480) );
 #endif
 
-	int k=0;
-	while(k<500) { //modify it for longer/shorter videos
+	fouch::Timer timer;
+	bool loop = true;
+	while(loop) { //modify it for longer/shorter videos
 		
 		//mycapture >> imgMat; 
 		IplImage* img = cvQueryFrame(capture);
@@ -77,8 +80,13 @@ int main(int argc, char** argv) {
 		cvWriteFrame(video_writer, &((IplImage) imgMat));
 #endif
 		imshow("result", imgMat);
-		cvWaitKey(1);
-		k++;
+		int k=cvWaitKey(1);
+		timer.fps();
+		std::cout<<k<<std::endl;
+
+		if(k == 1048603 || cvCloseButtonPressed == 1 ){ //ESC
+			loop = !loop;
+		}
 
 		detectedPattern.clear();
 	}

@@ -8,7 +8,7 @@ solution "TablaturnSolution"
       language "C++"
       files { "src/**" }
       includedirs { "src", "common", "include", "lib/", "lib/opencv2/include", "lib/glfw/include"}
-      libdirs { "lib/**" }
+      libdirs { "lib/opencv2/lib/" }
       links {"glfw", "glew"}
       defines { "GLEW_STATIC" }
 
