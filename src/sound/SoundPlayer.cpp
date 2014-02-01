@@ -1,6 +1,7 @@
 #include "sound/SoundPlayer.hpp"
 #include <iterator>
 #include <vector>
+#include "fouch/Timer.hpp"
 
 
 
@@ -153,16 +154,16 @@ void SoundPlayer::removeLoop(size_t index){
 
 void SoundPlayer::toggleLoop(size_t index){
 	if(index > sounds.size())	exit(-1);
-    FMOD_MODE * mode;
-    sounds[index]->getMode(mode);
-    if(*mode == FMOD_LOOP_OFF)	loop(index);
+    FMOD_MODE mode;
+    sounds[index]->getMode(&mode);
+    if(mode == FMOD_LOOP_OFF)	loop(index);
     else						removeLoop(index);
 }
 
 
 // Destructor
 SoundPlayer::~SoundPlayer(void){
-	for(int i=0; i < sounds.size(); ++i){
+	for(size_t i=0; i < sounds.size(); ++i){
 		result = sounds[i]->release();
 		errCheck();
 	}

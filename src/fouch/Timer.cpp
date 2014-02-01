@@ -11,7 +11,19 @@
 
 namespace fouch {
 
-Timer::Timer() {
+__Timer__* Timer::timer = NULL;
+
+Timer::Timer(const char* name){
+	if(!timer)
+		timer = new __Timer__(name);
+}
+
+Timer::~Timer(){
+	delete(timer);
+	timer = NULL;
+}
+
+__Timer__::__Timer__() {
 	// TODO Auto-generated constructor stub
 	mStartTime = SDL_GetTicks();
 	mLastTime = mStartTime;
@@ -22,7 +34,7 @@ Timer::Timer() {
 
 }
 
-Timer::Timer(const char* filename) {
+__Timer__::__Timer__(const char* filename) {
 	// TODO Auto-generated constructor stub
 	mStartTime = SDL_GetTicks();
 	mLastTime = mStartTime;
@@ -34,17 +46,17 @@ Timer::Timer(const char* filename) {
 
 }
 
-Timer::~Timer() {
+__Timer__::~__Timer__() {
 	// TODO Auto-generated destructor stub
 	stopTimer();
 	dump();
 }
 
 
-long Timer::stopTimer(char* name){
-	if(name == "" && mLastBreakpoint == "" ){
+long __Timer__::stopTimer(char* name){
+	if( strcmp(name, "") == 0 && mLastBreakpoint == "" ){
 		return 0;
-	} else if(name == ""){
+	} else if(strcmp(name, "") == 0){
 		name = (char*) mLastBreakpoint.c_str();
 	}
 
@@ -60,7 +72,7 @@ long Timer::stopTimer(char* name){
 	return res;
 }
 
-long Timer::breakpoint(const char* name){
+long __Timer__::breakpoint(const char* name){
 
 	long res = stopTimer();
 
@@ -77,7 +89,7 @@ long Timer::breakpoint(const char* name){
 }
 
 
-void Timer::__addBreakpoint(const char* name){
+void __Timer__::__addBreakpoint(const char* name){
 
 	Breakpoint bp;
 	bp.time = 0;
@@ -91,7 +103,7 @@ void Timer::__addBreakpoint(const char* name){
 }
 
 
-float Timer::fps(){
+float __Timer__::fps(){
 	++mFrames;
 	++mTotalFrames;
 	float spent = (float) SDL_GetTicks() - mLastTime;
@@ -106,13 +118,11 @@ float Timer::fps(){
 
 
 
-void Timer::reset(){
-	mStartTime = SDL_GetTicks();
-	mFrames = 0;
-	mFPS = 0;
+void __Timer__::reset(){
+	mBreakpoints = std::map<std::string, Breakpoint>();
 }
 
-void Timer::dump(){
+void __Timer__::dump(bool r){
 	// TODO write report into the file if there is one or in the standard output
 	long finalTime = SDL_GetTicks();
 	long duration = (float)(finalTime - mStartTime) / 1000.f;
@@ -134,7 +144,7 @@ void Timer::dump(){
 	std::vector<std::pair<std::string, Breakpoint> > mapcopy(mBreakpoints.begin(), mBreakpoints.end());
 	std::sort(mapcopy.begin(), mapcopy.end(), comparator<std::string, Breakpoint>());
 
-	int i = 0;
+	size_t i = 0;
 	for(;i < mapcopy.size();++i) {
 		std::cout<<"["<<i<<"]\t"<<mapcopy[i].first<<" :\t"<<std::fixed<<(float)mapcopy[i].second.time/(duration*10.f);
 		std::cout<<"%\t"<<(float)(mapcopy[i].second.time)/1000.f<<"s\t"<<mapcopy[i].second.nbCall<<"\t"<<mapcopy[i].second.minTime<<"ms\t"<<mapcopy[i].second.maxTime<<"ms"<<std::endl;
@@ -145,6 +155,9 @@ void Timer::dump(){
 		output.close();
 	}
 
+	if(r)	reset();
+
 }
+
 
 } /* namespace fouch */
