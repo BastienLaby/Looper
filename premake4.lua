@@ -3,7 +3,7 @@ solution "TablaturnSolution"
    platforms {"native", "x64", "x32"}
 
    -- Tablaturn
-   project "Tablaturn"
+   project "Looper"
       kind "ConsoleApp"
       language "C++"
       files { "src/**" }
