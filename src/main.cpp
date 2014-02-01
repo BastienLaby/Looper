@@ -3,18 +3,19 @@
 #include <fstream>
 #include <sstream>
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_image.h>
-#include <SDL/SDL_ttf.h>
+#include "glew/glew.h"
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include "GL/glfw.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/opencv.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/opencv.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
-#include <sound/SoundPlayer.hpp>
+#include "sound/SoundPlayer.hpp"
 
 #include "fouch/Timer.hpp"
 
@@ -86,44 +87,37 @@ int main(int argc, char* argv[]) {
 	if(verbose)		std::cerr<<"Setting camera mode"<<std::endl;
 
 
-	// init screen surface
-	if(SDL_Init(SDL_INIT_VIDEO) == -1){
-		std::cerr << "error SDL_Init" << std::endl;
-		return (EXIT_FAILURE);
-	}
+	// Initialise GLFW
+    if( !glfwInit() )
+    {
+        fprintf( stderr, "Failed to initialize GLFW\n" );
+        exit( EXIT_FAILURE );
+    }
 
-	const SDL_VideoInfo* info = SDL_GetVideoInfo();
-	WINDOW_WIDTH = info->current_w;
-	WINDOW_HEIGHT = info->current_h;
-	SDL_Surface *screen;
-	bool fullscreen = true;
-
-	if(WINDOW_WIDTH > 1980){
-		WINDOW_HEIGHT = 1024;
-		WINDOW_WIDTH = 780;
-		screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_HWSURFACE | SDL_RESIZABLE);
-		fullscreen = false;
-	} else {
-		screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_HWSURFACE | SDL_FULLSCREEN);
-	}
-
-	SDL_WM_SetCaption("Tablaturn", NULL);
-
-	if(TTF_Init() == -1)
-	{
-		std::cerr<<"Erreur d'initialisation de TTF_Init : "<<TTF_GetError()<<std::endl;
-		return (EXIT_FAILURE);
-	}
-
-	TTF_Font *police = TTF_OpenFont("media/font/captureit.ttf", 12);
-	if(!police){
-		std::cerr << "Erreur lors du chargement de la police." << std::endl;
-		return (EXIT_FAILURE);
-	}
-
-	SDL_Rect messageOffset;
-	messageOffset.x = WINDOW_WIDTH - 200;
-	messageOffset.y = WINDOW_HEIGHT - 100;
+    WINDOW_WIDTH = 1024;
+	WINDOW_HEIGHT = 780;
+		
+	// Open a window and create its OpenGL context
+    if( !glfwOpenWindow( WINDOW_WIDTH, WINDOW_HEIGHT, 0,0,0,0, 24, 0, GLFW_WINDOW ) )
+    {
+        fprintf( stderr, "Failed to open GLFW window\n" );
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+    // Uncomment if you are on full screen
+    // glfwEnable(GLFW_MOUSE_CURSOR);
+    glfwSetWindowTitle( "Looper" );
+    GLenum err = glewInit();
+    if (GLEW_OK != err)
+    {
+          /* Problem: glewInit failed, something is seriously wrong. */
+          fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+          exit(EXIT_FAILURE);
+    }
+    // Ensure we can capture the escape key being pressed below
+    glfwEnable(GLFW_STICKY_KEYS);
+    // Enable vertical sync (on cards that support it)
+    glfwSwapInterval(1);
 
 
 
@@ -150,27 +144,20 @@ int main(int argc, char* argv[]) {
 	sleep(1);
 	soundPlayer.play(0);
 
-	std::string caption;
-	SDL_Color textColor = {255, 255, 255};
-	SDL_Color bgColor = {0, 0, 0};
-
-	SDL_Surface* surfaceContent;
-	SDL_Surface* infos;
-
-	if(!fexists((IMG_PATH + "pattern_lite.png").c_str())){
-		if(verbose)		std::cerr<<"Unable to locate the file '"<<(IMG_PATH + "pattern_lite.png").c_str()<<"'"<<std::endl;
-		exit(-1);
-	}
-
 	fouch::Timer timer;
-	bool loop = true;
-	while(loop){
+	
+	float fps = 0.f;
+	double t;
+	
+	do {
+
+		t = glfwGetTime();
 
 		// Load image model + capture webcam image
 		timer.breakpoint("Capture Images");
+		
 		cv::Mat img_scene;
 		videoCaptor >> img_scene;
-
 		if(img_scene.empty())
 		{
 			std::cout << "Failed to capture the webcam image" << std::endl;
@@ -183,8 +170,8 @@ int main(int argc, char* argv[]) {
 		// *****************************
 
 		timer.breakpoint("Detect pattern");
-		Mat img_object = imread( (IMG_PATH + "pattern_lite.png").c_str());
 
+		Mat img_object = imread( (IMG_PATH + "pattern_lite.png").c_str());
 		if(!img_object.data)
 		{
 			std::cout<< " --(!) Error reading obj image " << std::endl;
@@ -197,80 +184,82 @@ int main(int argc, char* argv[]) {
 			return -1;
 		}
 
-		//-- Step 1: Detect the keypoints using SURF Detector
+		// Step 1: Detect the keypoints using SURF Detector
 		int minHessian = 400;
-
-		if(verbose)		std::cerr<<"detector creation"<<std::endl;
-
+		if(verbose)	std::cerr<<"detector creation"<<std::endl;
 		SurfFeatureDetector detector( minHessian );
-
 		std::vector<KeyPoint> keypoints_object, keypoints_scene;
-
-		if(verbose)		std::cerr<<"Points detection"<<std::endl;
-
+		
+		if(verbose)	std::cerr<<"Points detection"<<std::endl;
 		detector.detect( img_object, keypoints_object );
 		detector.detect( img_scene, keypoints_scene );
 
-		//-- Step 2: Calculate descriptors (feature vectors)
+		// Step 2: Calculate descriptors (feature vectors)
 		SurfDescriptorExtractor extractor;
-
 		Mat descriptors_object, descriptors_scene;
-
-		if(verbose)		std::cerr<<"Objects extraction from points"<<std::endl;
-
+		if(verbose)	std::cerr<<"Objects extraction from points"<<std::endl;
 		extractor.compute( img_object, keypoints_object, descriptors_object );
 		extractor.compute( img_scene, keypoints_scene, descriptors_scene );
 
-		//-- Step 3: Matching descriptor vectors using FLANN matcher
+		// Step 3: Matching descriptor vectors using FLANN matcher
 		FlannBasedMatcher matcher;
 		std::vector< DMatch > matches;
 		matcher.match( descriptors_object, descriptors_scene, matches );
-
 		double max_dist = 0; double min_dist = 100;
 
-		//-- Quick calculation of max and min distances between keypoints
+		//	Quick calculation of max and min distances between keypoints
 		for( int i = 0; i < descriptors_object.rows; i++ )
-		{ double dist = matches[i].distance;
-		if( dist < min_dist ) min_dist = dist;
-		if( dist > max_dist ) max_dist = dist;
+		{
+			double dist = matches[i].distance;
+			if( dist < min_dist ) min_dist = dist;
+			if( dist > max_dist ) max_dist = dist;
 		}
 
-		if(verbose)		printf("-- Max dist : %f \n", max_dist );
-		if(verbose)		printf("-- Min dist : %f \n", min_dist );
+		if(verbose)	printf("-- Max dist : %f \n", max_dist );
+		if(verbose)	printf("-- Min dist : %f \n", min_dist );
 
 		//-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
 		timer.breakpoint("Drawing matches");
 		std::vector< DMatch > good_matches;
 
 		for( int i = 0; i < descriptors_object.rows; i++ )
-		{ if( matches[i].distance < 3*min_dist )
-		{ good_matches.push_back( matches[i]); }
+		{
+			if(matches[i].distance < 3*min_dist)
+			{
+				good_matches.push_back( matches[i]);
+			}
 		}
 
 		Mat img_matches;
-		drawMatches( img_object, keypoints_object, img_scene, keypoints_scene,
-				good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
-				vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+		drawMatches(img_object,
+					keypoints_object,
+					img_scene,
+					keypoints_scene,
+					good_matches,
+					img_matches,
+					Scalar::all(-1),
+					Scalar::all(-1),
+					vector<char>(),
+					DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 
-		//-- Localize the object
+		// Localize the object
 		std::vector<Point2f> obj;
 		std::vector<Point2f> scene;
 
-		for( int i = 0; i < good_matches.size(); i++ )
+		for(int i = 0; i < good_matches.size(); i++)
 		{
-			//-- Get the keypoints from the good matches
+			// Get the keypoints from the good matches
 			obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
 			scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
 		}
 
 		Mat H = findHomography( obj, scene, CV_RANSAC );
 
-		//-- Get the corners from the image_1 ( the object to be "detected" )
+		// Get the corners from the image_1 ( the object to be "detected" )
 		std::vector<Point2f> obj_corners(4);
 		obj_corners[0] = cvPoint(0,0); obj_corners[1] = cvPoint( img_object.cols, 0 );
 		obj_corners[2] = cvPoint( img_object.cols, img_object.rows ); obj_corners[3] = cvPoint( 0, img_object.rows );
 		std::vector<Point2f> scene_corners(4);
-
 		perspectiveTransform( obj_corners, scene_corners, H);
 
 
@@ -280,7 +269,7 @@ int main(int argc, char* argv[]) {
 
 		if(verbose)	 std::cerr<<"drawing lines"<<std::endl;
 
-		//-- Draw lines between the corners (the mapped object in the scene - image_2 )
+		// Draw lines between the corners (the mapped object in the scene - image_2 )
 		line( img_matches, scene_corners[0] + Point2f( img_object.cols, 0), scene_corners[1] + Point2f( img_object.cols, 0), Scalar(0, 255, 0), 4 );
 		line( img_matches, scene_corners[1] + Point2f( img_object.cols, 0), scene_corners[2] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
 		line( img_matches, scene_corners[2] + Point2f( img_object.cols, 0), scene_corners[3] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
@@ -289,87 +278,29 @@ int main(int argc, char* argv[]) {
 		// TODO : verify the img_matches matrix isn't empty
 		unsigned char *input = (unsigned char*)(img_matches.data);
 		if(verbose) 	std::cerr<<"Size of captured image : "<<img_matches.cols<<" x "<<img_matches.rows<<std::endl;
-		//    if(verbose) {
-		//    	int i,j,r,g,b;
-		//		for(int i = 0;i < img_matches.rows ;i++){
-		//			for(int j = 0;j < img_matches.cols ;j++){
-		//				r = input[img_matches.step * j + i + 2];
-		//				if(verbose) 	std::cerr<<"Red : "<<r<<"\t\t";
-		//				g = input[img_matches.step * j + i + 1];
-		//				if(verbose) 	std::cerr<<",Green : "<<g<<"\t\t";
-		//				b = input[img_matches.step * j + i ] ;
-		//				if(verbose) 	std::cerr<<",Blue : "<<b<<"\t\t"<<std::endl;
-		//			}
-		//		}
-		//    }
 
 		timer.breakpoint("Convert format");
-		SDL_FillRect(screen,NULL, 0x000000);
 
-		//-- Show detected matches
+		// Show detected matches
 		IplImage* img = new IplImage(img_matches);
-		surfaceContent = SDL_CreateRGBSurfaceFrom((void*)img->imageData,
-				img->width,
-				img->height,
-				img->depth*img->nChannels,
-				img->widthStep,
-				0xff0000, 0x00ff00, 0x0000ff, 0);
 
 		timer.breakpoint("Display content");
-
-		SDL_BlitSurface(surfaceContent, NULL, screen, NULL);
-
-		if(fullscreen){
-			SDL_BlitSurface(infos, NULL, screen, &messageOffset);
-		}
-
-		SDL_Flip(screen);
-		SDL_GL_SwapBuffers();
 
 		timer.breakpoint("Events Handling");
 
 		float fps = timer.fps();
 		ostringstream convert;
 		convert << fps;
-		if(!fullscreen){
-			caption = "Tablaturn - "+convert.str()+" FPS";
-			SDL_WM_SetCaption(caption.c_str(), NULL);
-		} else {
-			caption = convert.str()+" fps";
-			std::cerr<<caption<<std::endl;
-			infos = TTF_RenderText_Shaded(police, caption.c_str(), textColor, bgColor );
-		}
 
-		//Gestion des évenements
-		SDL_Event e;
-		while(SDL_PollEvent(&e)) {
-			/* L'utilisateur ferme la fenêtre */
-			if(e.type == SDL_QUIT) {
-				loop = false;
-				break;
-			}
-
-			switch(e.type){
-
-			case SDL_KEYDOWN:
-				switch(e.key.keysym.sym){
-				case SDLK_ESCAPE:
-					loop = false;
-					break;
-
-				default:
-					break;
-				}
-				break;
-
-				default :
-					break;
-			}
-		}
-
+		// Swap buffers
+        glfwSwapBuffers();
+        double newTime = glfwGetTime();
+        fps = 1.f/ (newTime - t);
 	}
+	while( glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED) );
 
-	SDL_Quit();
+	// Close OpenGL window and terminate GLFW
+    glfwTerminate();
 
 	return (EXIT_SUCCESS);
 }
