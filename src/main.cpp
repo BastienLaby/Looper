@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
 		timer.fps();
 		std::cout<<k<<std::endl;
 
-		if(k == 1048603 || cvCloseButtonPressed == 1 ){ //ESC
+		if(k == 1048603 ){ //ESC
 			loop = !loop;
 		}
 
