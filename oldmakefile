@@ -1,0 +1,66 @@
+CC = g++
+CFLAGS = -Wall -g -O2 -ansi -pedantic -I include
+LDFLAGS = -lSDL -lSDL_image -lSDL_ttf `pkg-config --cflags --libs opencv` -lfmodex64
+LIBS = lib
+
+SRC_PATH=src
+BIN_PATH=bin
+OBJ_PATH=obj
+LIB_PATH=-L $(LIBS)
+DIRNAME= $(shell basename $$PWD)
+BACKUP= $(shell date +`basename $$PWD`-%m.%d.%H.%M.tgz)
+
+LIB_SDLTTF=$(shell find /usr/lib -name libSDL_ttf.so)
+
+EXEC = TablaTurn
+
+SRC_FILES = $(shell find $(SRC_PATH) -type f -name '*.cpp')
+OBJ_FILES = $(patsubst $(SRC_PATH)/%.cpp, $(OBJ_PATH)/%.o, $(SRC_FILES))
+
+all: $(LIB_SDLTTF) $(BIN_PATH) $(BIN_PATH)/$(EXEC)
+	@echo "************************************************************************"
+	@echo "                       Binary file created"
+	@echo "                 to execute type: $(BIN_PATH)/$(EXEC) &"
+	@echo "************************************************************************"
+
+$(BIN_PATH)/$(EXEC): $(OBJ_FILES)
+	@echo "Compile $@ ..."
+	$(CC) -o $@ $^ $(LIB_PATH) $(LDFLAGS)
+	@echo "Done."
+
+$(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
+	@echo "Compile $@ ..."
+	@mkdir -p $(@D)
+	$(CC) -c -o $@ $(CFLAGS) $^
+	@echo "Done."
+	
+
+$(LIB_SDLTTF):
+	@echo ""
+	@echo "This programm needs the library SDL_ttf which is not installed on your computer yet, we will install it for you :"
+	sudo apt-get install libsdl-ttf2.0-0 libsdl-ttf2.0-dev
+	
+	
+$(BIN_PATH):
+	@echo "Creating bin directory"
+	mkdir $(BIN_PATH)
+
+
+
+clean:
+	@echo "**************************"
+	@echo "Clean"
+	@echo "**************************"
+	rm $(OBJ_FILES)
+
+cleanall:
+	@echo "**************************"
+	@echo "Clean All"
+	@echo "**************************"
+	rm -Rf $(BIN_PATH) $(OBJ_PATH)
+	
+tar : clean 
+	@echo "**************************"
+	@echo "TAR"
+	@echo "**************************"
+	cd .. && tar cvfz $(BACKUP) $(DIRNAME)
