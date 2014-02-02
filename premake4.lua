@@ -9,7 +9,7 @@ solution "TablaturnSolution"
       files { "src/**" }
       includedirs { "src", "common", "include", "lib/", "lib/opencv2/include", "lib/glfw/include"}
       libdirs { "lib/**" }
-      links {"glfw", "glew"}
+      links {"glfw", "glew", "stb", "imgui"}
       defines { "GLEW_STATIC" }
 
       configuration { "linux" }
@@ -65,12 +65,45 @@ solution "TablaturnSolution"
          flags { "Optimize" }    
          targetdir "bin/release"
 
+   -- IMGUI library         
+   project "imgui"
+      kind "StaticLib"
+      language "C"
+      files {"lib/imgui/*.cpp", "lib/imgui/*.h"}
+      includedirs { "lib/" }
+
+      configuration "Debug"
+         defines { "DEBUG" }
+         flags { "Symbols" }
+         targetdir "bin/debug"
+
+      configuration "Release"
+         defines { "NDEBUG" }
+         flags { "Optimize" }    
+         targetdir "bin/release"
+
    -- GLEW Library         
    project "glew"
       kind "StaticLib"
       language "C"
       files {"lib/glew/*.c", "lib/glew/*.h"}
       defines { "GLEW_STATIC" }
+
+      configuration "Debug"
+         defines { "DEBUG" }
+         flags { "Symbols" }
+         targetdir "bin/debug"
+
+      configuration "Release"
+         defines { "NDEBUG" }
+         flags { "Optimize" }    
+         targetdir "bin/release"
+
+   -- stb Library         
+   project "stb"
+      kind "StaticLib"
+      language "C"
+      files {"lib/stb/*.c", "lib/stb/*.h"}
 
       configuration "Debug"
          defines { "DEBUG" }
