@@ -84,14 +84,9 @@ int main(int argc, char** argv) {
     CameraManager cammg;
     int glcam = cammg.createCamera();
     cammg.switchTo(glcam);
-    cammg.setEye(glm::vec3(0.1, 0.1, 1));
 
     GUIStates guiStates;
     init_gui_states(guiStates);
-
-    //
-    // Pattern Detection
-    //
 
     //
     // Load Texture
@@ -143,11 +138,11 @@ int main(int argc, char** argv) {
     //
 
     // Load geometry
-    float w = widthf/1000;
-    float h = heightf/1000;
+    float w = widthf/100;
+    float h = heightf/100;
     int plane_triangleCount = 2;
     int plane_triangleList[] = {0, 1, 2, 0, 2, 3}; 
-    float plane_uvs[] = {0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 1.f};
+    float plane_uvs[] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f};
     float plane_vertices[] = {-w, h, 0.0, w, h, 0.0, w, -h, 0.0, -w, -h, 0.0};
     float plane_normals[] = {0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0};
 
@@ -197,7 +192,8 @@ int main(int argc, char** argv) {
 
         t = glfwGetTime();
         
-        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
+        cap >> frame;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -269,7 +265,7 @@ int main(int argc, char** argv) {
         glUniformMatrix4fv(viewLocation, 1, 0, glm::value_ptr(worldToView));
 
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, plane_triangleCount*3, GL_UNSIGNED_INT, 0);
 
         
 
