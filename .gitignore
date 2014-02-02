@@ -16,3 +16,9 @@
 obj/*
 Makefile
 *.make
+Looperd
+
+#Eclipse
+.cprojet
+.Project
+.project

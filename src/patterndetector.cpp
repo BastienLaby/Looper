@@ -259,8 +259,8 @@ int PatternDetector::identifyPattern(const Mat& src, std::vector<cv::Mat>& loade
 		}
 	}
 
-	cout << "MaxCor: " << info.maxCor << endl;
-	cout << "Ori: " << info.ori << endl;
+//	cout << "MaxCor: " << info.maxCor << endl;
+//	cout << "Ori: " << info.ori << endl;
 
 	if (info.maxCor>confThreshold)
 		return 1;

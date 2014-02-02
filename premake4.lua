@@ -7,9 +7,11 @@ solution "TablaturnSolution"
       kind "ConsoleApp"
       language "C++"
       files { "src/**" }
-      includedirs { "src", "common", "include", "lib/", "lib/opencv2/include", "lib/glfw/include"}
+      includedirs { "src", "common", "include", "lib/", "lib/opencv2/include", "lib/glfw/include", "lib/fmod/include"}
+
       libdirs { "lib/**" }
       links {"glfw", "glew", "stb", "imgui"}
+
       defines { "GLEW_STATIC" }
 
       configuration { "linux" }

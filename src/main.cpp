@@ -24,6 +24,8 @@
 #include "CameraManager.hpp"
 #include "IMGUITools.hpp"
 
+//#include "fouch/Timer.hpp"
+
 using namespace std;
 using namespace cv;
 using namespace ARma;
@@ -278,6 +280,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers();
         fps = 1.f/ (glfwGetTime() - t);
         std::cout << fps << std::endl;
+
 	}
 	while( glfwGetKey( GLFW_KEY_ESC ) != GLFW_PRESS &&
            glfwGetWindowParam( GLFW_OPENED ) );
