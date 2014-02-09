@@ -159,4 +159,5 @@ public:
 
 
 } /* namespace fouch */
-#endif /* TIMER_HPP_ */
+
+#endif

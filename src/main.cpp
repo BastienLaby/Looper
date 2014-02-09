@@ -20,9 +20,11 @@
 #include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include "glm/gtc/type_ptr.hpp" // glm::value_ptr
 
-#include "ShaderTools.hpp"
-#include "CameraManager.hpp"
-#include "IMGUITools.hpp"
+#include "render/CameraManager.hpp"
+#include "render/IMGUITools.hpp"
+#include "render/Texture.hpp"
+#include "render/Renderer.hpp"
+#include "render/Shader.hpp"
 
 #include "sound/SoundPlayer.hpp"
 #include "fouch/Timer.hpp"
@@ -30,8 +32,6 @@
 using namespace std;
 using namespace cv;
 using namespace ARma;
-
-
 
 int main(int argc, char** argv) {
 
@@ -89,10 +89,7 @@ int main(int argc, char** argv) {
     // Load Texture
     //
 
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    looper::Renderer renderer;
 
     VideoCapture cap(0);
     if(!cap.isOpened())  // check if we succeeded
@@ -100,35 +97,24 @@ int main(int argc, char** argv) {
     Mat frame;
     cap >> frame;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    looper::Texture frameTexture;
+    frameTexture.setSource(frame);
 
     //
     // Load Shader
     //
 
-    ShaderGLSL shader;
-    const char * shaderFile = "shader.glsl";
-    int status = load_shader_from_file(shader, shaderFile, ShaderGLSL::VERTEX_SHADER | ShaderGLSL::FRAGMENT_SHADER | ShaderGLSL::GEOMETRY_SHADER);
-    if (status == -1)
-    {
-        fprintf(stderr, "Error on loading  %s\n", shaderFile);
-        exit( EXIT_FAILURE );
-    }
-
-    // Apply shader
-    GLuint program = shader.program;
-    glUseProgram(program);
-
-    // Locations
-    GLuint projectionLocation = glGetUniformLocation(program, "Projection");
-    GLuint viewLocation = glGetUniformLocation(program, "View");
-    GLuint diffuseTextureLocation = glGetUniformLocation(program, "DiffuseTexture");
+    looper::Shader shader;
+    shader.load("shader.glsl");
+    
+    renderer.useShaderProgram(shader);
+    
+    shader.createShaderLocation("Projection");
+    shader.createShaderLocation("View");
+    shader.createShaderLocation("DiffuseTexture");
   
-    glUniform1i(diffuseTextureLocation, 0);
+    shader.sendUniformInteger("DiffuseTexture", 0);
+    
 
   	//
  	// Create quad model
@@ -203,7 +189,7 @@ int main(int argc, char** argv) {
 
         timer.breakpoint("Drawing scene");
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
+        frameTexture.setSource(frame);
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -261,27 +247,20 @@ int main(int argc, char** argv) {
             guiStates.lockPositionY = mousey;
         }
 
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
         glm::mat4 projection = glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f); 
         glm::mat4 worldToView = glm::lookAt(cammg.getEye(), cammg.getOrigin(), cammg.getUp());
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        renderer.beginDraw();
 
-        glUseProgram(program);
-
-        glUniformMatrix4fv(projectionLocation, 1, 0, glm::value_ptr(projection));
-        glUniformMatrix4fv(viewLocation, 1, 0, glm::value_ptr(worldToView));
+        renderer.useShaderProgram(shader);
+        shader.sendUniformMatrix4fv("Projection", glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f));
+        shader.sendUniformMatrix4fv("View", worldToView);
 
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, plane_triangleCount*3, GL_UNSIGNED_INT, 0);
 
-        
-
-		GLenum err = glGetError();
-        if(err != GL_NO_ERROR)
-            fprintf(stderr, "OpenGL Error : %s\n", gluErrorString(err));
+        renderer.endDraw();
 
         glfwSwapBuffers();
         std::cout << timer.fps() << std::endl;
