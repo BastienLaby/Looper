@@ -185,12 +185,6 @@ int main(int argc, char** argv) {
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
 
-	typedef map<size_t, size_t>::const_iterator MapIterator;
-	for (MapIterator iter = patternSoundAssociation.begin(); iter != patternSoundAssociation.end(); iter++)
-	{
-	    cout << "Key: " << iter->first <<"\tValue: " << iter->second << endl;
-	}
-
     std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
 
     double fixed_thresh = 40;
@@ -198,20 +192,23 @@ int main(int argc, char** argv) {
 	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
 	double confidenceThreshold = 0.5;
 	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
-
+    
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
 	std::vector<cv::Point2f> patternPositions, patternStartTop, patternStartBot, patternLoopTop, patternLoopBot;
 
     fouch::Timer timer;
 
+    double loopStart = glfwGetTime(); // Last time when the loop started
+    double loopTime = 3.; // Time in s before looping
+
 	do
 	{
 
-        long loopStart = glfwGetTime(); // Last time when the loop started
-        long loopTime = 3000; // Time in ms before looping
-
-        if(loopStart - glfwGetTime() > loopTime)  loopStart += loopTime;
-        float currentPosition = static_cast<float>(loopStart - glfwGetTime()) / static_cast<float>(loopTime);
+        if(glfwGetTime() - loopStart > loopTime) 
+        {
+            loopStart += loopTime;
+        }
+        double currentPosition = (glfwGetTime() - loopStart) / loopTime;
         
         //
         // Handle user inputs
@@ -280,6 +277,7 @@ int main(int argc, char** argv) {
 
         timer.breakpoint("Image capture   ");
         cap >> frame;
+        cv::flip(frame,frame,1);
 
         timer.breakpoint("Drawing scene   ");
 
@@ -326,74 +324,78 @@ int main(int argc, char** argv) {
             // TODO calibrer la grille
         	if(i == 0 && detectedPattern.at(i).id == 1 ) {
         		// Start, coin haut gauche
+                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
         		patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
         	}
 
         	if( i == 1 && detectedPattern.at(i).id == 2 ){
         		// Loop, coin haut
+                patternShader.sendUniformVec3f("color", glm::vec3(0.0, 1.0, 0.0));
         		patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
         	}
 
         	if( i == 2 && detectedPattern.at(i).id == 3 ){
         		// Start, coin bas gauche
+                patternShader.sendUniformVec3f("color", glm::vec3(0.0, 0.0, 1.0));
         		patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
         	}
+
+            if( i > 3)
+            {
+                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
+            }
 
         	if( i == 3 && detectedPattern.at(i).id == 4 ){
         		// Loop, coin bas droit
         		patternLoopBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-
         		isCalibrated = true;
-        		// TODO calculer l'homographie de la grille et tracer la ligne
-        		vector<Point2f> srcPoints, dstPoints;
-        		srcPoints.push_back(Point2f(0, 0));
-        		srcPoints.push_back(Point2f(1., 0));
-        		srcPoints.push_back(Point2f(1., 1.));
-        		srcPoints.push_back(Point2f(0, 1.));
+                vector<Point2f> srcPoints, dstPoints;
+                srcPoints.push_back(Point2f(0, 0));
+                srcPoints.push_back(Point2f(1., 0));
+                srcPoints.push_back(Point2f(1., 1.));
+                srcPoints.push_back(Point2f(0, 1.));
 
-        		dstPoints.push_back(patternStartTop[1]);
-        		dstPoints.push_back(patternLoopTop[0]);
-        		dstPoints.push_back(patternLoopBot[3]);
-        		dstPoints.push_back(patternStartBot[2]);
-        		gridHomography = findHomography( srcPoints, dstPoints);
+                dstPoints.push_back(patternStartTop[1]);
+                dstPoints.push_back(patternLoopTop[0]);
+                dstPoints.push_back(patternLoopBot[2]);
+                dstPoints.push_back(patternStartBot[3]);
 
-				std::vector<Point2f> linePosition(2);
-				linePosition[0] = Point2f(currentPosition,0);
-				linePosition[1] = Point2f( currentPosition, 1. );
-				std::vector<Point2f> realLine(2);
+                fprintf(stderr, "find homo\n");
+                gridHomography = findHomography(srcPoints, dstPoints);
+                fprintf(stderr, "find homo ok\n");
 
-				perspectiveTransform( linePosition, realLine, gridHomography);
+                std::vector<Point2f> linePosition(2);
+                linePosition[0] = Point2f(currentPosition, 0);
+                linePosition[1] = Point2f( currentPosition, 1. );
+                std::vector<Point2f> realLine(2);
 
-				cerr<<"Cursor on : ("<< realLine[0].x<<", "<<realLine[0].y<<") - ("<< realLine[1].x<<", "<<realLine[1].y<<")"<<endl;
+                perspectiveTransform(linePosition, realLine, gridHomography);
 
-                // TODO : code a function to convertion.
-                
                 glm::vec3 topleft, topright, botright, botleft;
 
-                topleft.x = - (realLine[0].x / widthf)*2 +1;
-                topleft.y = - (realLine[0].y / heightf)*2 +1;
+                topleft.x = -2*realLine[0].x / widthf +1;
+                topleft.y = -2*realLine[0].y / heightf +1;
                 topleft.z = 0;
                 topright.x = topleft.x + 0.01;
                 topright.y = topleft.y;
                 topright.z = 0;
 
-                botleft.x = - (realLine[1].x / widthf)*2 +1;
-                botleft.y = - (realLine[1].y / heightf)*2 +1;
+                botleft.x = -2*realLine[1].x / widthf +1;
+                botleft.y = -2*realLine[1].y / heightf +1;
                 botleft.z = 0;
                 botright.x = botleft.x + 0.01;
                 botright.y = botleft.y;
                 botright.z = 0;
 
 
-                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
+                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 1.0));
 
                 rectangle.setCorners(topleft, topright, botright, botleft);
                 rectangle.draw();
                 rectangle.resetCorners();
-
         	}
 
-        	if(isCalibrated && i > 3)
+        	//if(isCalibrated && i > 3)
             {
 
                 // TODO regarder autour de currentPosition les patterns détectés
@@ -401,21 +403,21 @@ int main(int argc, char** argv) {
                 patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
                 glm::vec3 topleft, topright, botright, botleft;
                 // TODO : code a function to convertion.
-                topleft.x = - (patternPositions.at(1).x / widthf)*2 + 1;
-                topleft.y = - (patternPositions.at(1).y / heightf)*2 + 1;
+                topleft.x = -2*patternPositions.at(1).x / widthf + 1;
+                topleft.y = -2*patternPositions.at(1).y / heightf + 1;
                 topleft.z = 0;
-                topright.x = - (patternPositions.at(0).x / widthf)*2 + 1;
-                topright.y = - (patternPositions.at(0).y / heightf)*2 + 1;
+                topright.x = -2*patternPositions.at(0).x / widthf + 1;
+                topright.y = -2*patternPositions.at(0).y / heightf + 1;
                 topright.z = 0;
-                botright.x = - (patternPositions.at(3).x / widthf)*2 + 1;
-                botright.y = - (patternPositions.at(3).y / heightf)*2 + 1;
+                botright.x = -2*patternPositions.at(3).x / widthf + 1;
+                botright.y = -2*patternPositions.at(3).y / heightf + 1;
                 botright.z = 0;
-                botleft.x = - (patternPositions.at(2).x / widthf)*2 + 1;
-                botleft.y = - (patternPositions.at(2).y / heightf)*2 + 1;
+                botleft.x = -2*patternPositions.at(2).x / widthf + 1;
+                botleft.y = -2*patternPositions.at(2).y / heightf + 1;
                 botleft.z = 0;
                 //fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
 
-                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
+                //patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 
                 rectangle.setCorners(topleft, topright, botright, botleft);
                 rectangle.draw();
@@ -424,11 +426,26 @@ int main(int argc, char** argv) {
 				patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 				//playing song :
 				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
-					std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
+					//std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
 					//soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
 				}
 
         	}
+
+        }
+
+        //
+        // Draw Cursor
+        //
+
+        if(isCalibrated)
+        {
+
+            // TODO calculer l'homographie de la grille et tracer la ligne
+
+            // TODO : code a function to convertion.
+            
+            
 
         }
 

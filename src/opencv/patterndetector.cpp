@@ -145,7 +145,7 @@ void PatternDetector::detect(const Mat& frame, const Mat& cameraMatrix, const Ma
 					patCand.id = out.index;
 					patCand.orientation = out.ori;
 					patCand.confidence = out.maxCor;
-					cout << "Id: " << patCand.id << endl;
+					//cout << "Id: " << patCand.id << endl;
 
 					for (j=0; j<4; j++){
 						patCand.vertices.push_back(refinedVertices.at((8-out.ori+v1-j)%4));
