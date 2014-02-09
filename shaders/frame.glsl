@@ -21,6 +21,7 @@ void main(void)
 	vertex.uv = VertexTexCoord;
 	vertex.normal = VertexNormal;
 	vec4 position = Object * vec4(VertexPosition, 1.0);
+	position.z = -0.001;
 	vertex.position = position.xyz;
 	gl_Position = Projection * View * position;
 }

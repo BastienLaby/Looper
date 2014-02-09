@@ -30,11 +30,30 @@
 #include "sound/SoundPlayer.hpp"
 #include "fouch/Timer.hpp"
 
+static const std::string MEDIA_PATH = "media/";
+static const std::string FONT_PATH = MEDIA_PATH + "font/";
+static const std::string IMG_PATH = MEDIA_PATH + "img/";
+static const std::string MUSIC_PATH = MEDIA_PATH + "music/";
+static const std::string OUTPUT_IMG_PATH = MEDIA_PATH + "output/";
+
+
 using namespace std;
 using namespace cv;
 using namespace ARma;
 
+
+bool sortPattern (Pattern A,Pattern B) { return (A.id<B.id); }
+
+
 int main(int argc, char** argv) {
+
+    VideoCapture cap(0);
+    if(!cap.isOpened())  // check if we succeeded
+        return -1;
+    //cap.set(CV_CAP_PROP_FPS, 50.0);
+    Mat frame;
+    cap >> frame;
+
 
     //
 	// Initialise GLFW
@@ -45,12 +64,15 @@ int main(int argc, char** argv) {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         exit( EXIT_FAILURE );
     }
-    int width = 800;
-    int height = 450;
+    int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     float widthf = (float) width;
     float heightf = (float) height;
     float w = widthf/100;
     float h = heightf/100;
+
+    fprintf( stderr, "cam width : %f\n", widthf);
+    fprintf( stderr, "cam height : %f\n", heightf);
 
     //
     // Open window and create GL Context
@@ -65,7 +87,7 @@ int main(int argc, char** argv) {
     }
     
     glfwEnable( GLFW_MOUSE_CURSOR );
-    glfwSetWindowTitle( "Animus" );
+    glfwSetWindowTitle( "Looper" );
 
     //
     // Init Glew
@@ -107,11 +129,6 @@ int main(int argc, char** argv) {
 
     looper::Renderer renderer;
 
-    VideoCapture cap(0);
-    if(!cap.isOpened())  // check if we succeeded
-        return -1;
-    Mat frame;
-    cap >> frame;
 
     looper::Texture frameTexture;
     frameTexture.setSource(frame);
@@ -152,30 +169,46 @@ int main(int argc, char** argv) {
     // Viewport 
     glViewport(0, 0, width, height);
 
-    Pattern pattern;
-    pattern.loadPattern("media/img/pattern_Loop.png");
-    pattern.loadPattern("media/img/pattern_Start.png");
-    pattern.loadPattern("media/img/Pattern_A.png");
-    pattern.loadPattern("media/img/Pattern_B.png");
+    std::map<size_t, size_t> patternSoundAssociation;
 
-	std::vector<Pattern> detectedPattern;
+	sound::SoundPlayer soundPlayer;
+    Pattern pattern;
+
+
+    // associate and load patterns with sounds
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] =  soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
+
+	typedef map<size_t, size_t>::const_iterator MapIterator;
+	for (MapIterator iter = patternSoundAssociation.begin(); iter != patternSoundAssociation.end(); iter++)
+	{
+	    cout << "Key: " << iter->first <<"\tValue: " << iter->second << endl;
+	}
+
+    std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
+
     double fixed_thresh = 40;
 	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
 	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
-	double confidenceThreshold = 0.35;
+	double confidenceThreshold = 0.5;
 	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
-	std::vector<cv::Point2f> patternPositions;
+	std::vector<cv::Point2f> patternPositions, patternStart, patternLoopTop, patternLoopBot;
 
     fouch::Timer timer;
-    bool detected = false;
+
 	do
 	{
 
         //
         // Handle user inputs
         //
+
+        long loopStart = glfwGetTime(); // Last time when the loop started
+        long loopTime = 3000; // Time in ms before looping
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -258,44 +291,75 @@ int main(int argc, char** argv) {
         frameTexture.unbind();
 
         //
-        // Detect Pattern and draw founded patterns
+        // Detect Pattern
         //
 
         timer.breakpoint("Pattern detection");
-        myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
 
-        //augment the input frame (and print out the properties of pattern if you want)
-        
         renderer.useShaderProgram(patternShader);
-
         patternShader.sendUniformMatrix4fv("Projection", projection);
         patternShader.sendUniformMatrix4fv("View", worldToView);
-        patternShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1))); // Todo : set it depending on patterns
+        patternShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1)));
 
-        if(!detected)
+        float currentPosition = static_cast<float>(loopStart - glfwGetTime()) / static_cast<float>(loopTime);
+
+        std::vector<Pattern> detectedPattern;
+        myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
+
+        // sort the detectedPattern to get the start and loop patterns first
+        std::sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
+        bool isCalibrated = false;
+
+        for (unsigned int i = 0; i < detectedPattern.size(); i++)
         {
 
-            for (unsigned int i = 0; i<detectedPattern.size(); i++)
+            // TODO calibrer la grille
+            if(i == 0 && detectedPattern.at(i).id == 1)
             {
+                // S, coin haut gauche
+                patternStart = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+            }
+
+            if(i == 1 && detectedPattern.at(i).id == 2)
+            {
+                // Loop, coin haut droit par défaut
+                patternLoopTop = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+            }
+
+            if(i == 2 && detectedPattern.at(i).id == 2)
+            {
+                // Loop, coin haut droit ou gauche, a déterminer en fonction de la position et des infos de S et de Loop
+                patternLoopBot = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+
+                isCalibrated = true;
+                // TODO calculer l'homographie de la grille et tracer la ligne
+            }
+
+            if(isCalibrated)
+            {
+                
+                // TODO regarder autour de currentPosition les patterns détectés
+
                 //detectedPattern.at(i).showPattern();
+
                 patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
-                
+
                 glm::vec3 topleft, topright, botright, botleft;
-                
-                topleft.x = patternPositions.at(1).x / 200 - 1;
-                topleft.y = patternPositions.at(1).y / 200 - 1;
+            
+                topleft.x = - (patternPositions.at(1).x / widthf)*2 + 1;
+                topleft.y = - (patternPositions.at(1).y / heightf)*2 + 1;
                 topleft.z = 0;
 
-                topright.x = patternPositions.at(0).x / 200 - 1;
-                topright.y = patternPositions.at(0).y / 200 - 1;
+                topright.x = - (patternPositions.at(0).x / widthf)*2 + 1;
+                topright.y = - (patternPositions.at(0).y / heightf)*2 + 1;
                 topright.z = 0;
 
-                botright.x = patternPositions.at(3).x / 200 - 1;
-                botright.y = patternPositions.at(3).y / 200 - 1;
+                botright.x = - (patternPositions.at(3).x / widthf)*2 + 1;
+                botright.y = - (patternPositions.at(3).y / heightf)*2 + 1;
                 botright.z = 0;
 
-                botleft.x = patternPositions.at(2).x / 200 - 1;
-                botleft.y = patternPositions.at(2).y / 200 - 1;
+                botleft.x = - (patternPositions.at(2).x / widthf)*2 + 1;
+                botleft.y = - (patternPositions.at(2).y / heightf)*2 + 1;
                 botleft.z = 0;
 
                 fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
@@ -303,14 +367,20 @@ int main(int argc, char** argv) {
                 rectangle.setCorners(topleft, topright, botright, botleft);
 
                 rectangle.draw();
-                break;
 
+                rectangle.resetCorners();
+
+                // Play sound if pattern is detected
+
+                if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() )
+                {
+                    std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
+                    //soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+                }
             }
-
         }
 
-        rectangle.resetCorners();
-        renderer.endDraw();
+        renderer.endDraw();        
 
         //
         // Draw UI

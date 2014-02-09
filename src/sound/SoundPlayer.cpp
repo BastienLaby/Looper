@@ -40,8 +40,8 @@ SoundPlayer::SoundPlayer() {
     if (version < FMOD_VERSION)
     {
         printf("Error!  You are using an old version of FMOD %08x.  This program requires %08x\n", version, FMOD_VERSION);
-        getch();
-        exit(-1);
+//        getch();
+//        exit(-1);
     }
 
     result = system->setOutput(FMOD_OUTPUTTYPE_ALSA);
@@ -54,6 +54,12 @@ SoundPlayer::SoundPlayer() {
 
 // Load every sound before playing them
 size_t SoundPlayer::loadSound(const char * filename){
+
+	std::ifstream ifile(filename);
+	if(!ifile){
+		std::cerr<<"Unable to open "<<filename<<". Verify if the file exists and the rights are correctly set."<<std::endl;
+		return EXIT_FAILURE;
+	}
 
 	size_t index = sounds.size();
 	FMOD::Sound * sound;
