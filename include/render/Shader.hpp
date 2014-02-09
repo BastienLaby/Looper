@@ -42,6 +42,11 @@ public:
 		glUniformMatrix4fv(m_locations.at(uniformName), 1, 0, glm::value_ptr(mat));
 	}
 
+	void sendUniformVec3f(const char* uniformName, glm::vec3 vec)
+	{
+		glUniform3fv(m_locations.at(uniformName), 1, glm::value_ptr(vec));
+	}
+
 	void sendUniformInteger(const char* uniformName, int i)
 	{
 		glUniform1i(m_locations.at(uniformName), i);

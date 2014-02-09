@@ -65,8 +65,6 @@ void main()
 
 #if defined(FRAGMENT)
 
-uniform vec3 color;
-
 in fData
 {
 	vec2 uv;
@@ -78,6 +76,6 @@ out vec4 Color;
 
 void main(void)
 {
-	Color = vec4(color, 1.0f);
+	Color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
 }
 #endif

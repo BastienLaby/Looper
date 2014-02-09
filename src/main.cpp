@@ -47,6 +47,7 @@ bool sortPattern (Pattern A,Pattern B) { return (A.id<B.id); }
 
 int main(int argc, char** argv) {
 
+
     VideoCapture cap(0);
     if(!cap.isOpened())  // check if we succeeded
         return -1;
@@ -152,6 +153,7 @@ int main(int argc, char** argv) {
     patternShader.createShaderLocation("Projection");
     patternShader.createShaderLocation("View");
     patternShader.createShaderLocation("Object");
+    patternShader.createShaderLocation("color");
 
   	//
  	// Create quad model
@@ -176,8 +178,10 @@ int main(int argc, char** argv) {
 
 
     // associate and load patterns with sounds
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] =  soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_A.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_B.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
 
@@ -196,19 +200,22 @@ int main(int argc, char** argv) {
 	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
-	std::vector<cv::Point2f> patternPositions, patternStart, patternLoopTop, patternLoopBot;
+	std::vector<cv::Point2f> patternPositions, patternStartTop, patternStartBot, patternLoopTop, patternLoopBot;
 
     fouch::Timer timer;
 
 	do
 	{
 
+        long loopStart = glfwGetTime(); // Last time when the loop started
+        long loopTime = 3000; // Time in ms before looping
+
+        if(loopStart - glfwGetTime() > loopTime)  loopStart += loopTime;
+        float currentPosition = static_cast<float>(loopStart - glfwGetTime()) / static_cast<float>(loopTime);
+        
         //
         // Handle user inputs
         //
-
-        long loopStart = glfwGetTime(); // Last time when the loop started
-        long loopTime = 3000; // Time in ms before looping
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -266,6 +273,7 @@ int main(int argc, char** argv) {
             guiStates.lockPositionY = mousey;
         }
 
+        
         //
         // Capture Video and draw image
         //
@@ -290,9 +298,11 @@ int main(int argc, char** argv) {
         rectangle.draw();
         frameTexture.unbind();
 
+
         //
         // Detect Pattern
         //
+
 
         timer.breakpoint("Pattern detection");
 
@@ -301,83 +311,125 @@ int main(int argc, char** argv) {
         patternShader.sendUniformMatrix4fv("View", worldToView);
         patternShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1)));
 
-        float currentPosition = static_cast<float>(loopStart - glfwGetTime()) / static_cast<float>(loopTime);
-
-        std::vector<Pattern> detectedPattern;
+        vector<Pattern> detectedPattern;
         myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
 
         // sort the detectedPattern to get the start and loop patterns first
-        std::sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
+        sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
         bool isCalibrated = false;
+        Mat gridHomography;
+    	
 
-        for (unsigned int i = 0; i < detectedPattern.size(); i++)
-        {
+        //augment the input frame (and print out the properties of pattern if you want)
+        for (unsigned int i = 0; i < detectedPattern.size(); i++){
 
             // TODO calibrer la grille
-            if(i == 0 && detectedPattern.at(i).id == 1)
-            {
-                // S, coin haut gauche
-                patternStart = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
-            }
+        	if(i == 0 && detectedPattern.at(i).id == 1 ) {
+        		// Start, coin haut gauche
+        		patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+        	}
 
-            if(i == 1 && detectedPattern.at(i).id == 2)
-            {
-                // Loop, coin haut droit par défaut
-                patternLoopTop = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
-            }
+        	if( i == 1 && detectedPattern.at(i).id == 2 ){
+        		// Loop, coin haut
+        		patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+        	}
 
-            if(i == 2 && detectedPattern.at(i).id == 2)
-            {
-                // Loop, coin haut droit ou gauche, a déterminer en fonction de la position et des infos de S et de Loop
-                patternLoopBot = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+        	if( i == 2 && detectedPattern.at(i).id == 3 ){
+        		// Start, coin bas gauche
+        		patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+        	}
 
-                isCalibrated = true;
-                // TODO calculer l'homographie de la grille et tracer la ligne
-            }
+        	if( i == 3 && detectedPattern.at(i).id == 4 ){
+        		// Loop, coin bas droit
+        		patternLoopBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 
-            if(isCalibrated)
-            {
+        		isCalibrated = true;
+        		// TODO calculer l'homographie de la grille et tracer la ligne
+        		vector<Point2f> srcPoints, dstPoints;
+        		srcPoints.push_back(Point2f(0, 0));
+        		srcPoints.push_back(Point2f(1., 0));
+        		srcPoints.push_back(Point2f(1., 1.));
+        		srcPoints.push_back(Point2f(0, 1.));
+
+        		dstPoints.push_back(patternStartTop[1]);
+        		dstPoints.push_back(patternLoopTop[0]);
+        		dstPoints.push_back(patternLoopBot[3]);
+        		dstPoints.push_back(patternStartBot[2]);
+        		gridHomography = findHomography( srcPoints, dstPoints);
+
+				std::vector<Point2f> linePosition(2);
+				linePosition[0] = Point2f(currentPosition,0);
+				linePosition[1] = Point2f( currentPosition, 1. );
+				std::vector<Point2f> realLine(2);
+
+				perspectiveTransform( linePosition, realLine, gridHomography);
+
+				cerr<<"Cursor on : ("<< realLine[0].x<<", "<<realLine[0].y<<") - ("<< realLine[1].x<<", "<<realLine[1].y<<")"<<endl;
+
+                // TODO : code a function to convertion.
                 
+                glm::vec3 topleft, topright, botright, botleft;
+
+                topleft.x = - (realLine[0].x / widthf)*2 +1;
+                topleft.y = - (realLine[0].y / heightf)*2 +1;
+                topleft.z = 0;
+                topright.x = topleft.x + 0.01;
+                topright.y = topleft.y;
+                topright.z = 0;
+
+                botleft.x = - (realLine[1].x / widthf)*2 +1;
+                botleft.y = - (realLine[1].y / heightf)*2 +1;
+                botleft.z = 0;
+                botright.x = botleft.x + 0.01;
+                botright.y = botleft.y;
+                botright.z = 0;
+
+
+                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
+
+                rectangle.setCorners(topleft, topright, botright, botleft);
+                rectangle.draw();
+                rectangle.resetCorners();
+
+        	}
+
+        	if(isCalibrated && i > 3)
+            {
+
                 // TODO regarder autour de currentPosition les patterns détectés
 
-                //detectedPattern.at(i).showPattern();
-
                 patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
-
                 glm::vec3 topleft, topright, botright, botleft;
-            
+                // TODO : code a function to convertion.
                 topleft.x = - (patternPositions.at(1).x / widthf)*2 + 1;
                 topleft.y = - (patternPositions.at(1).y / heightf)*2 + 1;
                 topleft.z = 0;
-
                 topright.x = - (patternPositions.at(0).x / widthf)*2 + 1;
                 topright.y = - (patternPositions.at(0).y / heightf)*2 + 1;
                 topright.z = 0;
-
                 botright.x = - (patternPositions.at(3).x / widthf)*2 + 1;
                 botright.y = - (patternPositions.at(3).y / heightf)*2 + 1;
                 botright.z = 0;
-
                 botleft.x = - (patternPositions.at(2).x / widthf)*2 + 1;
                 botleft.y = - (patternPositions.at(2).y / heightf)*2 + 1;
                 botleft.z = 0;
+                //fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
 
-                fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
+                patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 
                 rectangle.setCorners(topleft, topright, botright, botleft);
-
                 rectangle.draw();
-
                 rectangle.resetCorners();
 
-                // Play sound if pattern is detected
+				patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+				//playing song :
+				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
+					std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
+					//soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+				}
 
-                if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() )
-                {
-                    std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
-                    //soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
-                }
-            }
+        	}
+
         }
 
         renderer.endDraw();        

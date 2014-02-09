@@ -60,6 +60,15 @@ public:
 		sendData(topleft, topright, botright, botleft);
 	}
 
+	void setCorners(cv::Point2f topleft, cv::Point2f topright, cv::Point2f botright, cv::Point2f botleft)
+	{
+		glm::vec3 tl(topleft.x, topleft.y, 0);
+		glm::vec3 tr(topright.x, topright.y, 0);
+		glm::vec3 br(botright.x, botright.y, 0);
+		glm::vec3 bl(botleft.x, botleft.y, 0);
+		sendData(tl, tr, br, bl);
+	}
+
 	void resetCorners()
 	{
 		sendData(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0), glm::vec3(1, -1, 0), glm::vec3(-1, -1, 0));
