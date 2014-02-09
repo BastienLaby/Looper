@@ -72,8 +72,6 @@ in fData
     vec3 position;
 }frag;
 
-uniform sampler2D DiffuseTexture;
-
 out vec4 Color;
 
 void main(void)

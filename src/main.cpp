@@ -122,15 +122,19 @@ int main(int argc, char** argv) {
 
     looper::Shader frameShader;
     frameShader.load("shaders/frame.glsl");
-    
     renderer.useShaderProgram(frameShader);
-    
     frameShader.createShaderLocation("Projection");
     frameShader.createShaderLocation("View");
     frameShader.createShaderLocation("Object");
     frameShader.createShaderLocation("DiffuseTexture");
-  
     frameShader.sendUniformInteger("DiffuseTexture", 0);
+
+    looper::Shader patternShader;
+    patternShader.load("shaders/pattern.glsl");
+    renderer.useShaderProgram(patternShader);
+    patternShader.createShaderLocation("Projection");
+    patternShader.createShaderLocation("View");
+    patternShader.createShaderLocation("Object");
 
   	//
  	// Create quad model
@@ -165,29 +169,13 @@ int main(int argc, char** argv) {
 	std::vector<cv::Point2f> patternPositions;
 
     fouch::Timer timer;
-
+    bool detected = false;
 	do
 	{
 
-        timer.breakpoint("Image capture   ");
-        cap >> frame;
-
-        timer.breakpoint("Pattern detection");
-    	myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
-
-        //augment the input frame (and print out the properties of pattern if you want)
-        for (unsigned int i =0; i<detectedPattern.size(); i++){
-    		detectedPattern.at(i).showPattern();
-    		patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-    		std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<" : "<<std::endl;
-    		for(int j = 0; j < 4; ++j){
-    			std::cerr<<" point "<<j<<" ("<<patternPositions.at(j).x<<", "<<patternPositions.at(j).y<<")"<<std::endl;
-    		}
-        }
-
-        timer.breakpoint("Drawing scene   ");
-
-        frameTexture.setSource(frame);
+        //
+        // Handle user inputs
+        //
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -245,23 +233,83 @@ int main(int argc, char** argv) {
             guiStates.lockPositionY = mousey;
         }
 
-        
+        //
+        // Capture Video and draw image
+        //
+
+        timer.breakpoint("Image capture   ");
+        cap >> frame;
+
+        timer.breakpoint("Drawing scene   ");
+
+        frameTexture.setSource(frame);
+
         glm::mat4 projection = glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f);
         glm::mat4 worldToView = glm::lookAt(cammg.getEye(), cammg.getOrigin(), cammg.getUp());
         glm::mat4 objectToWorld;
 
         renderer.beginDraw();
-
         renderer.useShaderProgram(frameShader);
-
         frameShader.sendUniformMatrix4fv("Projection", projection);
         frameShader.sendUniformMatrix4fv("View", worldToView);
         frameShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1)));
-        
         frameTexture.bind();
         rectangle.draw();
         frameTexture.unbind();
 
+        //
+        // Detect Pattern and draw founded patterns
+        //
+
+        timer.breakpoint("Pattern detection");
+        myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
+
+        //augment the input frame (and print out the properties of pattern if you want)
+        
+        renderer.useShaderProgram(patternShader);
+
+        patternShader.sendUniformMatrix4fv("Projection", projection);
+        patternShader.sendUniformMatrix4fv("View", worldToView);
+        patternShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1))); // Todo : set it depending on patterns
+
+        if(!detected)
+        {
+
+            for (unsigned int i = 0; i<detectedPattern.size(); i++)
+            {
+                //detectedPattern.at(i).showPattern();
+                patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+                
+                glm::vec3 topleft, topright, botright, botleft;
+                
+                topleft.x = patternPositions.at(1).x / 200 - 1;
+                topleft.y = patternPositions.at(1).y / 200 - 1;
+                topleft.z = 0;
+
+                topright.x = patternPositions.at(0).x / 200 - 1;
+                topright.y = patternPositions.at(0).y / 200 - 1;
+                topright.z = 0;
+
+                botright.x = patternPositions.at(3).x / 200 - 1;
+                botright.y = patternPositions.at(3).y / 200 - 1;
+                botright.z = 0;
+
+                botleft.x = patternPositions.at(2).x / 200 - 1;
+                botleft.y = patternPositions.at(2).y / 200 - 1;
+                botleft.z = 0;
+
+                fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
+
+                rectangle.setCorners(topleft, topright, botright, botleft);
+
+                rectangle.draw();
+                break;
+
+            }
+
+        }
+
+        rectangle.resetCorners();
         renderer.endDraw();
 
         //

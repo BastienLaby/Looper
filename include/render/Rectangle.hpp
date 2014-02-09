@@ -10,17 +10,18 @@ class Rectangle
 {
 	GLuint m_vbos[4];
 	GLuint m_vao;
-public:
-	Rectangle()
-	{
 
-	    int plane_triangleList[] = {0, 1, 2, 0, 2, 3}; 
+	void sendData(glm::vec3 topleft, glm::vec3 topright, glm::vec3 botright, glm::vec3 botleft)
+	{
+		int plane_triangleList[] = {0, 1, 2, 0, 2, 3}; 
 	    float plane_uvs[] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f};
-	    float plane_vertices[] = {-1, 1, 0.0, 1, 1, 0.0, 1, -1, 0.0, -1, -1, 0.0};
+	    float plane_vertices[] =
+	    {	topleft.x, topleft.y, topleft.z,
+			topright.x, topright.y, topright.z,
+			botright.x, botright.y, botright.z,
+			botleft.x, botleft.y, botleft.z
+	    };
 	    float plane_normals[] = {0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0};
-		
-		glGenBuffers(4, m_vbos);
-		glGenVertexArrays(1, &m_vao);
 
 		glBindVertexArray(m_vao);
 
@@ -44,6 +45,24 @@ public:
 
 	    glBindVertexArray(0);
     	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+public:
+	Rectangle()
+	{
+		glGenBuffers(4, m_vbos);
+		glGenVertexArrays(1, &m_vao);
+		sendData(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0), glm::vec3(1, -1, 0), glm::vec3(-1, -1, 0));
+	}
+
+	void setCorners(glm::vec3 topleft, glm::vec3 topright, glm::vec3 botright, glm::vec3 botleft)
+	{
+		sendData(topleft, topright, botright, botleft);
+	}
+
+	void resetCorners()
+	{
+		sendData(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0), glm::vec3(1, -1, 0), glm::vec3(-1, -1, 0));
 	}
 
 	void draw()
