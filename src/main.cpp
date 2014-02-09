@@ -1,8 +1,8 @@
 #include <iostream>
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "cameraparams.h"
-#include "patterndetector.h"
+#include "opencv/cameraparams.h"
+#include "opencv/patterndetector.h"
 
 #include "glew/glew.h"
 #include <GL/gl.h>
@@ -24,17 +24,14 @@
 #include "CameraManager.hpp"
 #include "IMGUITools.hpp"
 
-//#include "fouch/Timer.hpp"
+#include "sound/SoundPlayer.hpp"
+#include "fouch/Timer.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace ARma;
 
-#define PAT_SIZE 64//equal to pattern_size variable (see below)
-#define SAVE_VIDEO 0 //if true, it saves the video in "output.avi"
-#define NUM_OF_PATTERNS 3// define the number of patterns you want to use
 
-static int loadPattern(const char* , std::vector<cv::Mat>& , int& );
 
 int main(int argc, char** argv) {
 
@@ -183,16 +180,29 @@ int main(int argc, char** argv) {
     // Viewport 
     glViewport(0, 0, width, height);
 
-    double t, fps;
 
-    
+//    double fixed_thresh = 40;
+//	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
+//	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
+//	double confidenceThreshold = 0.35;
+//	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
+//
+//	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, norm_pattern_size, mode);
+
+    fouch::Timer timer;
+
 
 	do
 	{
 
-        t = glfwGetTime();
-        
+
+
+        timer.breakpoint("Image capture");
+
         cap >> frame;
+
+        timer.breakpoint("Drawing scene");
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
@@ -274,8 +284,7 @@ int main(int argc, char** argv) {
             fprintf(stderr, "OpenGL Error : %s\n", gluErrorString(err));
 
         glfwSwapBuffers();
-        fps = 1.f/ (glfwGetTime() - t);
-        std::cout << fps << std::endl;
+        std::cout << timer.fps() << std::endl;
 
 	}
 	while( glfwGetKey( GLFW_KEY_ESC ) != GLFW_PRESS &&
@@ -286,41 +295,3 @@ int main(int argc, char** argv) {
 	return 0;
 
 }
-
-int loadPattern(const char* filename, std::vector<cv::Mat>& library, int& patternCount){
-	
-	Mat img = imread(filename,0);
-	
-
-
-	if(img.cols!=img.rows){
-		return -1;
-		std::cout << "Not a square pattern" << std::endl;
-	}
-
-	int msize = PAT_SIZE; 
-
-	Mat src(msize, msize, CV_8UC1);
-	Point2f center((msize-1)/2.0f,(msize-1)/2.0f);
-	Mat rot_mat(2,3,CV_32F);
-	
-
-	resize(img, src, Size(msize,msize));
-
-	Mat subImg = src(Range(msize/4,3*msize/4), Range(msize/4,3*msize/4));
-	library.push_back(subImg);
-
-	rot_mat = getRotationMatrix2D( center, 90, 1.0);
-
-	for (int i=1; i<50; i++){
-		Mat dst= Mat(msize, msize, CV_8UC1);
-		rot_mat = getRotationMatrix2D( center, -i*90, 1.0);
-		warpAffine( src, dst , rot_mat, Size(msize,msize));
-		Mat subImg = dst(Range(msize/4,3*msize/4), Range(msize/4,3*msize/4));
-		library.push_back(subImg);	
-	}
-
-	patternCount++;
-	return 1;
-}
-

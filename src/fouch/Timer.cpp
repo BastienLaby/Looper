@@ -48,7 +48,7 @@ __Timer__::__Timer__(const char* filename) {
 
 __Timer__::~__Timer__() {
 	// TODO Auto-generated destructor stub
-	stopTimer();
+	//stopTimer();
 	dump();
 }
 
