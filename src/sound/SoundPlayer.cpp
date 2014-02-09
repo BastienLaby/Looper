@@ -70,7 +70,7 @@ size_t SoundPlayer::loadSound(const char * filename){
     result = sounds[index]->setMode(FMOD_LOOP_OFF);
     errCheck();
 
-    return index;
+    return index+1;
 }
 
 
@@ -97,8 +97,10 @@ void SoundPlayer::loadFromFolder(const char* directory){
 
 
 void SoundPlayer::play(size_t index){
-    result = system->playSound(FMOD_CHANNEL_FREE, sounds[index], 0, &channel);
-    errCheck();
+	if(index > 0){
+		result = system->playSound(FMOD_CHANNEL_FREE, sounds[index-1], 0, &channel);
+		errCheck();
+	}
 }
 
 
@@ -147,21 +149,21 @@ void SoundPlayer::updateState(void){
 
 /******** SETTERS *******/
 void SoundPlayer::loop(size_t index){
-	if(index > sounds.size())	exit(-1);
-    result = sounds[index]->setMode(FMOD_LOOP_NORMAL);
+	if(index > sounds.size() || index == 0)	exit(-1);
+    result = sounds[index-1]->setMode(FMOD_LOOP_NORMAL);
     errCheck();
 }
 
 void SoundPlayer::removeLoop(size_t index){
-	if(index > sounds.size())	exit(-1);
-    result = sounds[index]->setMode(FMOD_LOOP_OFF);
+	if(index > sounds.size() || index == 0)	exit(-1);
+    result = sounds[index-1]->setMode(FMOD_LOOP_OFF);
     errCheck();
 }
 
 void SoundPlayer::toggleLoop(size_t index){
-	if(index > sounds.size())	exit(-1);
+	if(index > sounds.size() || index == 0)	exit(-1);
     FMOD_MODE mode;
-    sounds[index]->getMode(&mode);
+    sounds[index-1]->getMode(&mode);
     if(mode == FMOD_LOOP_OFF)	loop(index);
     else						removeLoop(index);
 }
