@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         exit( EXIT_FAILURE );
     }
-
     int width = 800;
     int height = 450;
     float widthf = (float) width;
     float heightf = (float) height;
+
     // Open a window and create its OpenGL context
     if( !glfwOpenWindow( width, height, 0,0,0,0, 24, 0, GLFW_WINDOW ) )
     {
@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     glfwEnable( GLFW_MOUSE_CURSOR );
     glfwSetWindowTitle( "Animus" );
 
+    // Init Glew
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
@@ -167,10 +168,10 @@ int main(int argc, char** argv) {
     glViewport(0, 0, width, height);
 
     Pattern pattern;
-    pattern.loadPattern("media/img/pattern\ Loop.png");
-    pattern.loadPattern("media/img/pattern\ Start.png");
+    pattern.loadPattern("media/img/pattern_Loop.png");
+    pattern.loadPattern("media/img/pattern_Start.png");
     pattern.loadPattern("media/img/Pattern_A.png");
-    pattern.loadPattern("media/img/Pattern\ B.png");
+    pattern.loadPattern("media/img/Pattern_B.png");
 
 	std::vector<Pattern> detectedPattern;
     double fixed_thresh = 40;
