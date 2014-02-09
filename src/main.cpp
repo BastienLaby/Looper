@@ -40,7 +40,19 @@ using namespace std;
 using namespace cv;
 using namespace ARma;
 
+
+bool sortPattern (Pattern A,Pattern B) { return (A.id<B.id); }
+
+
 int main(int argc, char** argv) {
+
+    VideoCapture cap(0);
+    if(!cap.isOpened())  // check if we succeeded
+        return -1;
+    cap.set(CV_CAP_PROP_FPS, 50.0);
+    Mat frame;
+    cap >> frame;
+
 
     //
 	// Initialise GLFW
@@ -51,8 +63,8 @@ int main(int argc, char** argv) {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         exit( EXIT_FAILURE );
     }
-    int width = 800;
-    int height = 450;
+    int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     float widthf = (float) width;
     float heightf = (float) height;
 
@@ -111,11 +123,6 @@ int main(int argc, char** argv) {
 
     looper::Renderer renderer;
 
-    VideoCapture cap(0);
-    if(!cap.isOpened())  // check if we succeeded
-        return -1;
-    Mat frame;
-    cap >> frame;
 
     looper::Texture frameTexture;
     frameTexture.setSource(frame);
@@ -209,39 +216,67 @@ int main(int argc, char** argv) {
     double fixed_thresh = 40;
 	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
 	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
-	double confidenceThreshold = 0.35;
+	double confidenceThreshold = 0.5;
 	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
-	std::vector<cv::Point2f> patternPositions;
+	std::vector<cv::Point2f> patternPositions, patternStart, patternLoopTop, patternLoopBot;
 
     fouch::Timer timer;
+    long loopStart = glfwGetTime(); // Last time when the loop started
+    long loopTime = 3000; // Time in ms before looping
 
 	do
 	{
+
+		float currentPosition = static_cast<float>(loopStart - glfwGetTime()) / static_cast<float>(loopTime);
 
         timer.breakpoint("Image capture   ");
         cap >> frame;
 
         timer.breakpoint("Pattern detection");
 
-
     	std::vector<Pattern> detectedPattern;
     	myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
 
-        //augment the input frame (and print out the properties of pattern if you want)
-        for (unsigned int i =0; i<detectedPattern.size(); i++){
-//    		detectedPattern.at(i).showPattern();
-    		patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-    		std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
-    		//playing song :
-    		if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
-    			soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
-    		}
-//    		for(int j = 0; j < 4; ++j){
-//    			std::cerr<<" point "<<j<<" ("<<patternPositions.at(j).x<<", "<<patternPositions.at(j).y<<")"<<std::endl;
-//    		}
+    	// sort the detectedPattern to get the start and loop patterns first
+    	std::sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
+    	bool isCalibrated = false;
 
+        //augment the input frame (and print out the properties of pattern if you want)
+        for (unsigned int i = 0; i < detectedPattern.size(); i++){
+
+            // TODO calibrer la grille
+        	if(i == 0 && detectedPattern.at(i).id == 1 ) {
+        		// S, coin haut gauche
+        		patternStart = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+        	}
+
+        	if( i == 1 && detectedPattern.at(i).id == 2 ){
+        		// Loop, coin haut droit par défaut
+        		patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+        	}
+
+        	if( i == 2 && detectedPattern.at(i).id == 2 ){
+        		// Loop, coin haut droit ou gauche, a déterminer en fonction de la position et des infos de S et de Loop
+        		patternLoopBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+
+        		isCalibrated = true;
+        		// TODO calculer l'homographie de la grille et tracer la ligne
+        	}
+
+        	if(isCalibrated){
+
+                // TODO regarder autour de currentPosition les patterns détectés
+
+				patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+				//playing song :
+				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
+					std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
+					soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+				}
+
+        	}
 
         }
 

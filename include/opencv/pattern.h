@@ -4,6 +4,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
+#include <algorithm>
+
 using namespace cv;
 
 namespace ARma {
@@ -50,6 +52,7 @@ public:
 	inline int Id() { return static_cast<int>( ceil( (id+1) / patternNbRotation ) ) ; };
 
 };
+
 
 
 }
