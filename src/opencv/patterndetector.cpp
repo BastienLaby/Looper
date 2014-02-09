@@ -1,4 +1,4 @@
-#include "patterndetector.h"
+#include "opencv/patterndetector.h"
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/core/core.hpp"
