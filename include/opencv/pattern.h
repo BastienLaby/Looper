@@ -12,6 +12,7 @@ class Pattern
 {
 protected :
 	static int patternCount;
+	static int patternNbRotation;
 
 	static std::vector<cv::Mat> patternLibrary;
 
@@ -43,8 +44,10 @@ public:
 	//prints the properties of the pattern and its transformation matrix
 	void showPattern(void);
 
-	static int loadPattern(const char* filename);
+	size_t loadPattern(const char* filename);
 	static std::vector<cv::Mat>& getPatterns();
+
+	inline int Id() { return static_cast<int>( ceil( (id+1) / patternNbRotation ) ) ; };
 
 };
 

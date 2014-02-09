@@ -14,6 +14,7 @@ bool fexists(const char *filename)
 
 
 int Pattern::patternCount = 0;
+int Pattern::patternNbRotation = 5;
 int Pattern::patternSize = 64;
 std::vector<cv::Mat> Pattern::patternLibrary;
 
@@ -159,7 +160,7 @@ void Pattern::draw(Mat& frame, const Mat& camMatrix, const Mat& distMatrix)
 }
 
 
-int Pattern::loadPattern(const char* filename){
+size_t Pattern::loadPattern(const char* filename){
 
 	if( !fexists(filename) ) {
 		std::cerr<<"Unable to open "<<filename<<". Verify if the file exists and the rights are correctly set."<<std::endl;
@@ -187,7 +188,7 @@ int Pattern::loadPattern(const char* filename){
 
 	rot_mat = getRotationMatrix2D( center, 90, 1.0);
 
-	for (int i=1; i<50; i++){
+	for (int i=1; i<patternNbRotation; i++){
 		Mat dst= Mat(msize, msize, CV_8UC1);
 		rot_mat = getRotationMatrix2D( center, -i*90, 1.0);
 		warpAffine( src, dst , rot_mat, Size(msize,msize));
@@ -196,7 +197,7 @@ int Pattern::loadPattern(const char* filename){
 	}
 
 	patternCount++;
-	return 1;
+	return patternCount;
 }
 
 std::vector<cv::Mat>& Pattern::getPatterns(){

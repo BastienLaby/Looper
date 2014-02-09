@@ -20,18 +20,25 @@
 #include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include "glm/gtc/type_ptr.hpp" // glm::value_ptr
 
-
-#include "CameraManager.hpp"
-#include "IMGUITools.hpp"
+#include "render/CameraManager.hpp"
+#include "render/IMGUITools.hpp"
+#include "render/Texture.hpp"
+#include "render/Renderer.hpp"
+#include "render/Shader.hpp"
 
 #include "sound/SoundPlayer.hpp"
 #include "fouch/Timer.hpp"
 
+static const std::string MEDIA_PATH = "media/";
+static const std::string FONT_PATH = MEDIA_PATH + "font/";
+static const std::string IMG_PATH = MEDIA_PATH + "img/";
+static const std::string MUSIC_PATH = MEDIA_PATH + "music/";
+static const std::string OUTPUT_IMG_PATH = MEDIA_PATH + "output/";
+
+
 using namespace std;
 using namespace cv;
 using namespace ARma;
-
-
 
 int main(int argc, char** argv) {
 
@@ -60,7 +67,7 @@ int main(int argc, char** argv) {
     }
     
     glfwEnable( GLFW_MOUSE_CURSOR );
-    glfwSetWindowTitle( "Animus" );
+    glfwSetWindowTitle( "Looper" );
 
     GLenum err = glewInit();
     if (GLEW_OK != err)
@@ -89,10 +96,7 @@ int main(int argc, char** argv) {
     // Load Texture
     //
 
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    looper::Renderer renderer;
 
     VideoCapture cap(0);
     if(!cap.isOpened())  // check if we succeeded
@@ -100,35 +104,24 @@ int main(int argc, char** argv) {
     Mat frame;
     cap >> frame;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    looper::Texture frameTexture;
+    frameTexture.setSource(frame);
 
     //
     // Load Shader
     //
 
-    ShaderGLSL shader;
-    const char * shaderFile = "shader.glsl";
-    int status = load_shader_from_file(shader, shaderFile, ShaderGLSL::VERTEX_SHADER | ShaderGLSL::FRAGMENT_SHADER | ShaderGLSL::GEOMETRY_SHADER);
-    if (status == -1)
-    {
-        fprintf(stderr, "Error on loading  %s\n", shaderFile);
-        exit( EXIT_FAILURE );
-    }
-
-    // Apply shader
-    GLuint program = shader.program;
-    glUseProgram(program);
-
-    // Locations
-    GLuint projectionLocation = glGetUniformLocation(program, "Projection");
-    GLuint viewLocation = glGetUniformLocation(program, "View");
-    GLuint diffuseTextureLocation = glGetUniformLocation(program, "DiffuseTexture");
+    looper::Shader shader;
+    shader.load("shader.glsl");
+    
+    renderer.useShaderProgram(shader);
+    
+    shader.createShaderLocation("Projection");
+    shader.createShaderLocation("View");
+    shader.createShaderLocation("DiffuseTexture");
   
-    glUniform1i(diffuseTextureLocation, 0);
+    shader.sendUniformInteger("DiffuseTexture", 0);
+    
 
   	//
  	// Create quad model
@@ -180,11 +173,24 @@ int main(int argc, char** argv) {
     // Viewport 
     glViewport(0, 0, width, height);
 
+    std::map<size_t, size_t> patternSoundAssociation;
+
+	sound::SoundPlayer soundPlayer;
     Pattern pattern;
-    pattern.loadPattern("media/img/pattern\ Loop.png");
-    pattern.loadPattern("media/img/pattern\ Start.png");
-    pattern.loadPattern("media/img/Pattern_A.png");
-    pattern.loadPattern("media/img/Pattern\ B.png");
+
+    // associate and load patterns with sounds
+	patternSoundAssociation[pattern.loadPattern("media/img/pattern Loop.png")] = soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/pattern Start.png")] =  soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
+
+	typedef map<size_t, size_t>::const_iterator MapIterator;
+	for (MapIterator iter = patternSoundAssociation.begin(); iter != patternSoundAssociation.end(); iter++)
+	{
+	    cout << "Key: " << iter->first <<"\tValue: " << iter->second << endl;
+	}
+
+    std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
 
     double fixed_thresh = 40;
 	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
@@ -200,6 +206,7 @@ int main(int argc, char** argv) {
 	do
 	{
 
+
         timer.breakpoint("Image capture   ");
 
         cap >> frame;
@@ -211,17 +218,23 @@ int main(int argc, char** argv) {
 
         //augment the input frame (and print out the properties of pattern if you want)
         for (unsigned int i =0; i<detectedPattern.size(); i++){
-    		detectedPattern.at(i).showPattern();
+//    		detectedPattern.at(i).showPattern();
     		patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-    		std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<" : "<<std::endl;
-    		for(int j = 0; j < 4; ++j){
-    			std::cerr<<" point "<<j<<" ("<<patternPositions.at(j).x<<", "<<patternPositions.at(j).y<<")"<<std::endl;
+    		std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
+    		//playing song :
+    		if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
+    			soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
     		}
+//    		for(int j = 0; j < 4; ++j){
+//    			std::cerr<<" point "<<j<<" ("<<patternPositions.at(j).x<<", "<<patternPositions.at(j).y<<")"<<std::endl;
+//    		}
+
+
         }
 
         timer.breakpoint("Drawing scene   ");
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame.cols, frame.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, frame.ptr());
+        frameTexture.setSource(frame);
 
         int leftButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_LEFT );
         int rightButton = glfwGetMouseButton( GLFW_MOUSE_BUTTON_RIGHT );
@@ -279,30 +292,23 @@ int main(int argc, char** argv) {
             guiStates.lockPositionY = mousey;
         }
 
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
         glm::mat4 projection = glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f); 
         glm::mat4 worldToView = glm::lookAt(cammg.getEye(), cammg.getOrigin(), cammg.getUp());
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        renderer.beginDraw();
 
-        glUseProgram(program);
-
-        glUniformMatrix4fv(projectionLocation, 1, 0, glm::value_ptr(projection));
-        glUniformMatrix4fv(viewLocation, 1, 0, glm::value_ptr(worldToView));
+        renderer.useShaderProgram(shader);
+        shader.sendUniformMatrix4fv("Projection", glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f));
+        shader.sendUniformMatrix4fv("View", worldToView);
 
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, plane_triangleCount*3, GL_UNSIGNED_INT, 0);
 
-        
-
-		GLenum err = glGetError();
-        if(err != GL_NO_ERROR)
-            fprintf(stderr, "OpenGL Error : %s\n", gluErrorString(err));
+        renderer.endDraw();
 
         glfwSwapBuffers();
-        std::cout << timer.fps() << std::endl;
+//        std::cout << timer.fps() << std::endl;
 
 	}
 	while( glfwGetKey( GLFW_KEY_ESC ) != GLFW_PRESS &&
