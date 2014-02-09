@@ -1,12 +1,21 @@
 #include "opencv/pattern.h"
 #include <iostream>
+#include <fstream>
 using namespace cv;
 using namespace std;
 
 namespace ARma {
 
+bool fexists(const char *filename)
+{
+  std::ifstream ifile(filename);
+  return ifile;
+}
+
+
 int Pattern::patternCount = 0;
 int Pattern::patternSize = 64;
+std::vector<cv::Mat> Pattern::patternLibrary;
 
 Pattern::Pattern(double param1) {
 	id =-1;
@@ -29,7 +38,7 @@ void Pattern::showPattern()
 {
 	cout << "Pattern ID: " << id << endl;
 	cout << "Pattern Size: " << size << endl;
-	cout << "Pattern Confidence Value: " << confidence << endl;
+	cout << "Pattern Confedince Value: " << confidence << endl;
 	cout << "Pattern Orientation: " << orientation << endl;
 	rotationMatrix(rotVec, rotMat);
 	cout << "Exterior Matrix (from pattern to camera): " << endl;
@@ -83,11 +92,8 @@ void Pattern::getExtrinsics(int patternSize, const Mat& cameraMatrix, const Mat&
 	cvFindExtrinsicCameraParams2(&objectPts, &imagePts, &intrinsics, &distCoeff, &rot, &tra);
 }
 
+std::vector<cv::Point2f> Pattern::getPositions(Mat& frame, const Mat& camMatrix, const Mat& distMatrix){
 
-
-std::vector<PatternToken> Pattern::detect(Mat& frame, const Mat& camMatrix, const Mat& distMatrix){
-
-	std::vector<PatternToken> res;
 	Mat modelPts = (Mat_<float>(4,3) << 0, 0, 0, size, 0, 0, size, size, 0, 0, size, 0 );
 
 	std::vector<cv::Point2f> model2ImagePts;
@@ -98,9 +104,8 @@ std::vector<PatternToken> Pattern::detect(Mat& frame, const Mat& camMatrix, cons
 		 */
 	projectPoints(modelPts, rotVec, transVec, camMatrix, distMatrix, model2ImagePts);
 
-	return res;
+	return model2ImagePts;
 }
-
 
 void Pattern::draw(Mat& frame, const Mat& camMatrix, const Mat& distMatrix)
 {
@@ -122,8 +127,6 @@ void Pattern::draw(Mat& frame, const Mat& camMatrix, const Mat& distMatrix)
 	//model 3D points: they must be projected to the image plane
 	Mat modelPts = (Mat_<float>(8,3) << 0, 0, 0, size, 0, 0, size, size, 0, 0, size, 0,
 			0, 0, -size, size, 0, -size, size, size, -size, 0, size, -size );
-
-
 
 
 	std::vector<cv::Point2f> model2ImagePts;
@@ -158,6 +161,11 @@ void Pattern::draw(Mat& frame, const Mat& camMatrix, const Mat& distMatrix)
 
 int Pattern::loadPattern(const char* filename){
 
+	if( !fexists(filename) ) {
+		std::cerr<<"Unable to open "<<filename<<". Verify if the file exists and the rights are correctly set."<<std::endl;
+		return EXIT_FAILURE;
+	}
+
 	Mat img = imread(filename,0);
 
 	if(img.cols!=img.rows){
@@ -175,7 +183,7 @@ int Pattern::loadPattern(const char* filename){
 	resize(img, src, Size(msize,msize));
 
 	Mat subImg = src(Range(msize/4,3*msize/4), Range(msize/4,3*msize/4));
-	patternLibrary.push_back(subImg);
+	Pattern::patternLibrary.push_back(subImg);
 
 	rot_mat = getRotationMatrix2D( center, 90, 1.0);
 
@@ -184,7 +192,7 @@ int Pattern::loadPattern(const char* filename){
 		rot_mat = getRotationMatrix2D( center, -i*90, 1.0);
 		warpAffine( src, dst , rot_mat, Size(msize,msize));
 		Mat subImg = dst(Range(msize/4,3*msize/4), Range(msize/4,3*msize/4));
-		patternLibrary.push_back(subImg);
+		Pattern::patternLibrary.push_back(subImg);
 	}
 
 	patternCount++;
@@ -192,7 +200,8 @@ int Pattern::loadPattern(const char* filename){
 }
 
 std::vector<cv::Mat>& Pattern::getPatterns(){
-	return patternLibrary;
+	return Pattern::patternLibrary;
 }
+
 
 }

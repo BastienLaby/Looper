@@ -8,18 +8,12 @@ using namespace cv;
 
 namespace ARma {
 
-struct PatternToken {
-	unsigned int id;
-	std::pair<float, float> positions[4];
-};
-
 class Pattern
 {
 protected :
 	static int patternCount;
-	static int patternSize;
 
-	std::vector<cv::Mat> patternLibrary;
+	static std::vector<cv::Mat> patternLibrary;
 
 public:
 	vector<Point2f> vertices;
@@ -29,14 +23,16 @@ public:
 	double confidence;//min: -1, max: 1
 	Mat rotVec, transVec, rotMat;
 
+	static int patternSize;
+
 	Pattern(double param1=80);
 
 	~Pattern(){};
 
-	std::vector<PatternToken> detect(Mat& frame, const Mat& camMatrix, const Mat& distMatrix);
-
 	//solves the exterior orientation problem between patten and camera
 	void getExtrinsics(int patternSize, const Mat& cameraMatrix, const Mat& distortions);
+
+	std::vector<cv::Point2f> getPositions(Mat& frame, const Mat& camMatrix, const Mat& distMatrix);
 
 	//augments image with 3D cubes. It;s too simple augmentation jsut for checking
 	void draw(Mat& frame, const Mat& camMatrix, const Mat& distMatrix);
@@ -47,8 +43,8 @@ public:
 	//prints the properties of the pattern and its transformation matrix
 	void showPattern(void);
 
-	int loadPattern(const char* filename);
-	std::vector<cv::Mat>& getPatterns();
+	static int loadPattern(const char* filename);
+	static std::vector<cv::Mat>& getPatterns();
 
 };
 
