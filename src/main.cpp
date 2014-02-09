@@ -181,8 +181,6 @@ int main(int argc, char** argv) {
 	do
 	{
 
-
-
         timer.breakpoint("Image capture");
 
         cap >> frame;
