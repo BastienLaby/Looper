@@ -42,22 +42,24 @@ using namespace ARma;
 
 int main(int argc, char** argv) {
 
-	//
-	// Initialisation
-	//
-
+    //
 	// Initialise GLFW
+    //
+
     if( !glfwInit() )
     {
         fprintf( stderr, "Failed to initialize GLFW\n" );
         exit( EXIT_FAILURE );
     }
-
     int width = 800;
     int height = 450;
     float widthf = (float) width;
     float heightf = (float) height;
-    // Open a window and create its OpenGL context
+
+    //
+    // Open window and create GL Context
+    //
+
     if( !glfwOpenWindow( width, height, 0,0,0,0, 24, 0, GLFW_WINDOW ) )
     {
         fprintf( stderr, "Failed to open GLFW window\n" );
@@ -68,6 +70,10 @@ int main(int argc, char** argv) {
     
     glfwEnable( GLFW_MOUSE_CURSOR );
     glfwSetWindowTitle( "Looper" );
+
+    //
+    // Init Glew
+    //
 
     GLenum err = glewInit();
     if (GLEW_OK != err)
@@ -83,12 +89,19 @@ int main(int argc, char** argv) {
     // Enable vertical sync (on cards that support it)
     glfwSwapInterval( 1 );
 
+    //
+    // Load GL Camera
+    //
 
-    // Init viewer structures
     CameraManager cammg;
     int glcam = cammg.createCamera();
     cammg.switchTo(glcam);
 
+    //
+    // Init IMGUI
+    //
+
+    init_imgui();
     GUIStates guiStates;
     init_gui_states(guiStates);
 
@@ -178,11 +191,12 @@ int main(int argc, char** argv) {
 	sound::SoundPlayer soundPlayer;
     Pattern pattern;
 
+
     // associate and load patterns with sounds
-	patternSoundAssociation[pattern.loadPattern("media/img/pattern Loop.png")] = soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/pattern Start.png")] =  soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] =  soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_C.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_D.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
 
 	typedef map<size_t, size_t>::const_iterator MapIterator;
 	for (MapIterator iter = patternSoundAssociation.begin(); iter != patternSoundAssociation.end(); iter++)
@@ -206,12 +220,11 @@ int main(int argc, char** argv) {
 	do
 	{
 
-
         timer.breakpoint("Image capture   ");
-
         cap >> frame;
 
         timer.breakpoint("Pattern detection");
+
 
     	std::vector<Pattern> detectedPattern;
     	myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
@@ -299,16 +312,47 @@ int main(int argc, char** argv) {
         renderer.beginDraw();
 
         renderer.useShaderProgram(shader);
-        shader.sendUniformMatrix4fv("Projection", glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f));
+        shader.sendUniformMatrix4fv("Projection", projection);
         shader.sendUniformMatrix4fv("View", worldToView);
+
+        frameTexture.bind();
 
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, plane_triangleCount*3, GL_UNSIGNED_INT, 0);
 
+        frameTexture.unbind();
+
         renderer.endDraw();
 
+        // Draw UI
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glViewport(0, 0, width, height);
+
+        unsigned char mbut = 0;
+        int mscroll = 0;
+        int mousex; int mousey;
+        glfwGetMousePos(&mousex, &mousey);
+        mousey = height - mousey;
+
+        if(leftButton == GLFW_PRESS)
+            mbut |= IMGUI_MBUT_LEFT;
+
+        imguiBeginFrame(mousex, mousey, mbut, mscroll);
+        int logScroll = 0;
+        char lineBuffer[512];
+        imguiBeginScrollArea("Animation", 0, 0, 200, 100, &logScroll);
+        sprintf(lineBuffer, "FPS %f", timer.fps());
+        imguiLabel(lineBuffer);
+
+        imguiEndScrollArea();
+        imguiEndFrame();
+        imguiRenderGLDraw(width, height); 
+        glDisable(GL_BLEND);
+
+
         glfwSwapBuffers();
-//        std::cout << timer.fps() << std::endl;
 
 	}
 	while( glfwGetKey( GLFW_KEY_ESC ) != GLFW_PRESS &&

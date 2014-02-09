@@ -21,7 +21,7 @@
 #ifndef IMGUI_RENDER_GL_H
 #define IMGUI_RENDER_GL_H
 
-bool imguiRenderGLInit(const unsigned char* ttfBuffer, unsigned int ttfBufferSize);
+bool imguiRenderGLInit(const char* fontpath);
 void imguiRenderGLDestroy();
 void imguiRenderGLDraw(int width, int height);
 
