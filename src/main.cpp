@@ -166,26 +166,47 @@ int main(int argc, char** argv) {
     // Viewport 
     glViewport(0, 0, width, height);
 
+    Pattern pattern;
+    pattern.loadPattern("media/img/pattern\ Loop.png");
+    pattern.loadPattern("media/img/pattern\ Start.png");
+    pattern.loadPattern("media/img/Pattern_A.png");
+    pattern.loadPattern("media/img/Pattern\ B.png");
 
-//    double fixed_thresh = 40;
-//	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
-//	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
-//	double confidenceThreshold = 0.35;
-//	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
-//
-//	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, norm_pattern_size, mode);
+	std::vector<Pattern> detectedPattern;
+    double fixed_thresh = 40;
+	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
+	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
+	double confidenceThreshold = 0.35;
+	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
+
+	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
+	std::vector<cv::Point2f> patternPositions;
 
     fouch::Timer timer;
-
 
 	do
 	{
 
-        timer.breakpoint("Image capture");
+
+        timer.breakpoint("Image capture   ");
 
         cap >> frame;
 
-        timer.breakpoint("Drawing scene");
+        timer.breakpoint("Pattern detection");
+
+    	myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
+
+        //augment the input frame (and print out the properties of pattern if you want)
+        for (unsigned int i =0; i<detectedPattern.size(); i++){
+    		detectedPattern.at(i).showPattern();
+    		patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+    		std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<" : "<<std::endl;
+    		for(int j = 0; j < 4; ++j){
+    			std::cerr<<" point "<<j<<" ("<<patternPositions.at(j).x<<", "<<patternPositions.at(j).y<<")"<<std::endl;
+    		}
+        }
+
+        timer.breakpoint("Drawing scene   ");
 
         frameTexture.setSource(frame);
 
