@@ -1,10 +1,12 @@
 #if defined(VERTEX)
-uniform mat4 Projection;
-uniform mat4 View;
 
 in vec3 VertexPosition;
 in vec3 VertexNormal;
 in vec2 VertexTexCoord;
+
+uniform mat4 Projection;
+uniform mat4 View;
+uniform mat4 Object = mat4(1.0f);
 
 out vData
 {
@@ -18,8 +20,9 @@ void main(void)
 
 	vertex.uv = VertexTexCoord;
 	vertex.normal = VertexNormal;
-	vertex.position = VertexPosition;
-	gl_Position = Projection * View * vec4(VertexPosition, 1.0f);
+	vec4 position = Object * vec4(VertexPosition, 1.0);
+	vertex.position = position.xyz;
+	gl_Position = Projection * View * position;
 }
 
 #endif

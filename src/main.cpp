@@ -25,6 +25,7 @@
 #include "render/Texture.hpp"
 #include "render/Renderer.hpp"
 #include "render/Shader.hpp"
+#include "render/Rectangle.hpp"
 
 #include "sound/SoundPlayer.hpp"
 #include "fouch/Timer.hpp"
@@ -48,6 +49,8 @@ int main(int argc, char** argv) {
     int height = 450;
     float widthf = (float) width;
     float heightf = (float) height;
+    float w = widthf/100;
+    float h = heightf/100;
 
     //
     // Open window and create GL Context
@@ -117,30 +120,23 @@ int main(int argc, char** argv) {
     // Load Shader
     //
 
-    looper::Shader shader;
-    shader.load("shader.glsl");
+    looper::Shader frameShader;
+    frameShader.load("shaders/frame.glsl");
     
-    renderer.useShaderProgram(shader);
+    renderer.useShaderProgram(frameShader);
     
-    shader.createShaderLocation("Projection");
-    shader.createShaderLocation("View");
-    shader.createShaderLocation("DiffuseTexture");
+    frameShader.createShaderLocation("Projection");
+    frameShader.createShaderLocation("View");
+    frameShader.createShaderLocation("Object");
+    frameShader.createShaderLocation("DiffuseTexture");
   
-    shader.sendUniformInteger("DiffuseTexture", 0);
-    
+    frameShader.sendUniformInteger("DiffuseTexture", 0);
 
   	//
  	// Create quad model
     //
 
-    // Load geometry
-    float w = widthf/100;
-    float h = heightf/100;
-    int plane_triangleCount = 2;
-    int plane_triangleList[] = {0, 1, 2, 0, 2, 3}; 
-    float plane_uvs[] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f};
-    float plane_vertices[] = {-w, h, 0.0, w, h, 0.0, w, -h, 0.0, -w, -h, 0.0};
-    float plane_normals[] = {0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, 0};
+    looper::Rectangle rectangle;
 
     //
     // Create and bind VAO and VBO
@@ -148,33 +144,6 @@ int main(int argc, char** argv) {
 
     GLuint vbos[4];
     glGenBuffers(4, vbos);
-
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(plane_triangleList), plane_triangleList, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(plane_vertices), plane_vertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*3, (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(plane_normals), plane_normals, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*3, (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[3]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(plane_uvs), plane_uvs, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*2, (void*)0);
-
-    // Unbind everything. Potentially illegal on some implementations
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Viewport 
     glViewport(0, 0, width, height);
@@ -277,25 +246,28 @@ int main(int argc, char** argv) {
         }
 
         
-        glm::mat4 projection = glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f); 
+        glm::mat4 projection = glm::perspective(45.0f, widthf / heightf, 0.1f, 100.f);
         glm::mat4 worldToView = glm::lookAt(cammg.getEye(), cammg.getOrigin(), cammg.getUp());
+        glm::mat4 objectToWorld;
 
         renderer.beginDraw();
 
-        renderer.useShaderProgram(shader);
-        shader.sendUniformMatrix4fv("Projection", projection);
-        shader.sendUniformMatrix4fv("View", worldToView);
+        renderer.useShaderProgram(frameShader);
 
+        frameShader.sendUniformMatrix4fv("Projection", projection);
+        frameShader.sendUniformMatrix4fv("View", worldToView);
+        frameShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1)));
+        
         frameTexture.bind();
-
-        glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, plane_triangleCount*3, GL_UNSIGNED_INT, 0);
-
+        rectangle.draw();
         frameTexture.unbind();
 
         renderer.endDraw();
 
+        //
         // Draw UI
+        //
+
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -321,7 +293,6 @@ int main(int argc, char** argv) {
         imguiEndFrame();
         imguiRenderGLDraw(width, height); 
         glDisable(GL_BLEND);
-
 
         glfwSwapBuffers();
 
