@@ -50,7 +50,7 @@ void make_tfd(double* signal, double* tfd, size_t N)
 
 void init_imgui()
 {
-	if (!imguiRenderGLInit(DroidSans_ttf, DroidSans_ttf_len))
+	if (!imguiRenderGLInit("media/font/DroidSans.ttf"))
     {
         fprintf(stderr, "Could not init GUI renderer.\n");
         exit(EXIT_FAILURE);

@@ -330,7 +330,7 @@ static void drawLine(float x0, float y0, float x1, float y1, float r, float fth,
 }
 
 
-bool imguiRenderGLInit(const unsigned char* ttfBuffer, unsigned int ttfBufferSize)
+bool imguiRenderGLInit(const char* fontpath)
 {
         for (int i = 0; i < CIRCLE_VERTS; ++i)
         {
@@ -340,13 +340,31 @@ bool imguiRenderGLInit(const unsigned char* ttfBuffer, unsigned int ttfBufferSiz
         }
 
         // Load font.
+        FILE* fp = fopen(fontpath, "rb");
+        if (!fp) return false;
+        fseek(fp, 0, SEEK_END);
+        int size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        
+        unsigned char* ttfBuffer = (unsigned char*)malloc(size); 
+        if (!ttfBuffer)
+        {
+                fclose(fp);
+                return false;
+        }
+        
+        fread(ttfBuffer, 1, size, fp);
+        fclose(fp);
+        fp = 0;
+        
         unsigned char* bmap = (unsigned char*)malloc(512*512);
         if (!bmap)
         {
+                free(ttfBuffer);
                 return false;
         }
-
-        stbtt_BakeFontBitmap(ttfBuffer, 0, 15.0f, bmap,512,512, 32,96, g_cdata);
+        
+        stbtt_BakeFontBitmap(ttfBuffer,0, 15.0f, bmap,512,512, 32,96, g_cdata);
         
         // can free ttf_buffer at this point
         glGenTextures(1, &g_ftex);
@@ -432,6 +450,8 @@ bool imguiRenderGLInit(const unsigned char* ttfBuffer, unsigned int ttfBufferSiz
 
         glUseProgram(0);
 
+
+        free(ttfBuffer);
         free(bmap);
 
         return true;
@@ -602,7 +622,7 @@ void imguiRenderGLDraw(int width, int height)
 
         glViewport(0, 0, width, height);
         glUseProgram(g_program);
-	    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0);
         glUniform2f(g_programViewportLocation, (float) width, (float) height);
         glUniform1i(g_programTextureLocation, 0);
 
