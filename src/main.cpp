@@ -20,7 +20,7 @@
 #include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include "glm/gtc/type_ptr.hpp" // glm::value_ptr
 
-#include "ShaderTools.hpp"
+
 #include "CameraManager.hpp"
 #include "IMGUITools.hpp"
 
@@ -186,7 +186,6 @@ int main(int argc, char** argv) {
     pattern.loadPattern("media/img/Pattern_A.png");
     pattern.loadPattern("media/img/Pattern\ B.png");
 
-	std::vector<Pattern> detectedPattern;
     double fixed_thresh = 40;
 	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
 	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
@@ -207,6 +206,7 @@ int main(int argc, char** argv) {
 
         timer.breakpoint("Pattern detection");
 
+    	std::vector<Pattern> detectedPattern;
     	myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
 
         //augment the input frame (and print out the properties of pattern if you want)
