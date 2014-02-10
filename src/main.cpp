@@ -198,7 +198,8 @@ int main(int argc, char** argv) {
 
     fouch::Timer timer;
 
-    double loopStart = glfwGetTime(); // Last time when the loop started
+    double loopStart = glfwGetTime() - 0.05; // Last time when the loop started
+    double lastPosition = 0.;
     double loopTime = 3.; // Time in s before looping
 
 	do
@@ -315,7 +316,7 @@ int main(int argc, char** argv) {
         // sort the detectedPattern to get the start and loop patterns first
         sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
         bool isCalibrated = false;
-        Mat gridHomography;
+        Mat gridHomography, gridInvHomography;
     	
 
         //augment the input frame (and print out the properties of pattern if you want)
@@ -362,12 +363,16 @@ int main(int argc, char** argv) {
 
                 fprintf(stderr, "find homo\n");
                 gridHomography = findHomography(srcPoints, dstPoints);
+                gridInvHomography = gridHomography.inv();
+
                 fprintf(stderr, "find homo ok\n");
 
-                std::vector<Point2f> linePosition(2);
-                linePosition[0] = Point2f(currentPosition, 0);
-                linePosition[1] = Point2f( currentPosition, 1. );
-                std::vector<Point2f> realLine(2);
+                std::vector<Point2f> linePosition(4);
+                linePosition[0] = Point2f(lastPosition, 0);
+                linePosition[1] = Point2f(currentPosition, 0);
+                linePosition[2] = Point2f( currentPosition, 1. );
+                linePosition[3] = Point2f(lastPosition, 1.);
+                std::vector<Point2f> realLine(4);
 
                 perspectiveTransform(linePosition, realLine, gridHomography);
 
@@ -376,15 +381,15 @@ int main(int argc, char** argv) {
                 topleft.x = -2*realLine[0].x / widthf +1;
                 topleft.y = -2*realLine[0].y / heightf +1;
                 topleft.z = 0;
-                topright.x = topleft.x + 0.01;
-                topright.y = topleft.y;
+                topright.x = -2*realLine[1].x / widthf + 1;
+                topright.y = -2*realLine[1].y / heightf +1;
                 topright.z = 0;
 
-                botleft.x = -2*realLine[1].x / widthf +1;
-                botleft.y = -2*realLine[1].y / heightf +1;
+                botleft.x = -2*realLine[2].x / widthf +1;
+                botleft.y = -2*realLine[2].y / heightf +1;
                 botleft.z = 0;
-                botright.x = botleft.x + 0.01;
-                botright.y = botleft.y;
+                botright.x = -2*realLine[3].x / widthf +1;
+                botright.y = -2*realLine[3].x / widthf +1;
                 botright.z = 0;
 
 
@@ -425,9 +430,34 @@ int main(int argc, char** argv) {
 
 				patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 				//playing song :
-				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() ) {
-					//std::cerr<<"Detected pattern "<<detectedPattern.at(i).id<<", playing sound "<< patternSoundAssociation[detectedPattern.at(i).id] <<" : "<<std::endl;
-					//soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
+					// On regarde si au moins un coin du carré est entre lastPosition et currentPosition et le reste des points à droite de currentPosition.
+					// On fait l'homographie inverse pour recaler les points dans un repere simple.
+	                std::vector<Point2f> simplePositions(4);
+					perspectiveTransform(patternPositions, simplePositions, gridInvHomography);
+					int nbIn = 0, nbOut = 0;
+					for(int j = 0; j < 4; ++j){
+						if(currentPosition > lastPosition){
+							if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
+								++nbOut;
+							} else if(simplePositions.at(j).x > lastPosition && simplePositions.at(j).x < currentPosition){
+								++nbIn;
+							} else if(simplePositions.at(j).x < lastPosition){
+								++nbOut;
+							}
+						} else {
+							if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
+								++nbOut;
+							} else if(simplePositions.at(j).x < currentPosition && simplePositions.at(j).x > -0.1 ){
+								++nbIn;
+							} else if(simplePositions.at(j).x > lastPosition){
+								++nbOut;
+							}
+						}
+					}
+					if(nbOut == 0 && nbIn > 0){
+						soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+					}
 				}
 
         	}
@@ -438,16 +468,6 @@ int main(int argc, char** argv) {
         // Draw Cursor
         //
 
-        if(isCalibrated)
-        {
-
-            // TODO calculer l'homographie de la grille et tracer la ligne
-
-            // TODO : code a function to convertion.
-            
-            
-
-        }
 
         renderer.endDraw();        
 
@@ -482,6 +502,8 @@ int main(int argc, char** argv) {
         glDisable(GL_BLEND);
 
         glfwSwapBuffers();
+
+        lastPosition = currentPosition;
 
 	}
 	while( glfwGetKey( GLFW_KEY_ESC ) != GLFW_PRESS &&
