@@ -47,13 +47,22 @@ bool sortPattern (Pattern A,Pattern B) { return (A.id<B.id); }
 
 int main(int argc, char** argv) {
 
+	int camera = 0;
+	if(argc < 0)
+		fprintf(stderr, "No argument : Default camera will be choose (0)\n");
+	else
+		camera = atoi(argv[1]);
 
-	VideoCapture cap(0);
+	VideoCapture cap(camera);
+
 	if(!cap.isOpened())  // check if we succeeded
 		return -1;
 	//cap.set(CV_CAP_PROP_FPS, 50.0);
 	Mat frame;
+
 	cap >> frame;
+	
+
 
 
 	//
@@ -182,9 +191,9 @@ int main(int argc, char** argv) {
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_A.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/PatternX.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_closed_hi_hat.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternRe.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_open_hi_hat.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternMi.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_snare_drum.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternRe.png")] = soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternMi.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 
 
 	std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
@@ -203,6 +212,7 @@ int main(int argc, char** argv) {
 	double loopStart = glfwGetTime() - 0.02; // Last time when the loop started
 	double lastPosition = 0.;
 	double loopTime = 3.; // Time in s before looping
+
 
 	do
 	{
@@ -280,7 +290,8 @@ int main(int argc, char** argv) {
 
 		timer.breakpoint("Image capture   ");
 		cap >> frame;
-		cv::flip(frame,frame,1);
+		cv::flip(frame, frame, 1);
+		cv::cvtColor(frame, frame, CV_BGR2RGB);
 
 		timer.breakpoint("Drawing scene   ");
 
@@ -307,12 +318,14 @@ int main(int argc, char** argv) {
 
 		timer.breakpoint("Pattern detection");
 
+
 		renderer.useShaderProgram(patternShader);
 		patternShader.sendUniformMatrix4fv("Projection", projection);
 		patternShader.sendUniformMatrix4fv("View", worldToView);
 		patternShader.sendUniformMatrix4fv("Object", glm::scale(objectToWorld, glm::vec3(w, h, 1)));
 
 		vector<Pattern> detectedPattern;
+
 		myDetector.detect(frame, cameraMatrix, distortions, pattern.getPatterns(), detectedPattern);
 
 		// sort the detectedPattern to get the start and loop patterns first

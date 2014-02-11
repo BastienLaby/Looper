@@ -80,6 +80,7 @@ out vec4 Color;
 void main(void)
 {
 	Color = texture(DiffuseTexture, frag.uv);
+	//Color.rgb = Color.bgr;
 	//Color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 #endif
