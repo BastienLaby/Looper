@@ -3,6 +3,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv/cameraparams.h"
 #include "opencv/patterndetector.h"
+#include <sstream>
 
 #include "glew/glew.h"
 #include <GL/gl.h>
@@ -48,10 +49,15 @@ bool sortPattern (Pattern A,Pattern B) { return (A.id<B.id); }
 int main(int argc, char** argv) {
 
 	int camera = 0;
-	if(argc < 0)
+	if(argc < 2)
 		fprintf(stderr, "No argument : Default camera will be choose (0)\n");
-	else
-		camera = atoi(argv[1]);
+	else{
+		istringstream convert(argv[1]);
+
+		if ( !(convert >> camera) )
+			camera = 0;
+	}
+
 
 	VideoCapture cap(camera);
 
@@ -61,8 +67,6 @@ int main(int argc, char** argv) {
 	Mat frame;
 
 	cap >> frame;
-	
-
 
 
 	//
@@ -330,7 +334,7 @@ int main(int argc, char** argv) {
 
 		// sort the detectedPattern to get the start and loop patterns first
 		sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
-		bool isCalibrated = false;
+		bool isCalibrated = false, allCornerDetected = true;
 		Mat gridHomography, gridInvHomography;
 
 
@@ -342,18 +346,24 @@ int main(int argc, char** argv) {
 				// Start, coin haut gauche
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
 				patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+			} else {
+				allCornerDetected = false;
 			}
 
 			if( i == 1 && detectedPattern.at(i).id == 2 ){
 				// Loop, coin haut droit
 				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 1.0, 0.0));
 				patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+			} else {
+				allCornerDetected = false;
 			}
 
 			if( i == 2 && detectedPattern.at(i).id == 3 ){
 				// Start, coin bas gauche
 				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 0.0, 1.0));
 				patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+			} else {
+				allCornerDetected = false;
 			}
 
 			if( i > 3)
@@ -361,7 +371,7 @@ int main(int argc, char** argv) {
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 			}
 
-			if( i == 3 && detectedPattern.at(i).id == 4 ){
+			if( i == 3 && detectedPattern.at(i).id == 4 && allCornerDetected){
 				// Loop, coin bas droit
 				patternLoopBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 				isCalibrated = true;
@@ -376,11 +386,11 @@ int main(int argc, char** argv) {
 				dstPoints.push_back(patternLoopBot[0]);
 				dstPoints.push_back(patternStartBot[0]);
 
-//				fprintf(stderr, "find homo\n");
+				//				fprintf(stderr, "find homo\n");
 				gridHomography = findHomography(srcPoints, dstPoints);
 				gridInvHomography = gridHomography.inv();
 
-//				fprintf(stderr, "find homo ok\n");
+				//				fprintf(stderr, "find homo ok\n");
 
 				std::vector<Point2f> linePosition(4);
 				linePosition[0] = Point2f(lastPosition, 0);
@@ -393,33 +403,33 @@ int main(int argc, char** argv) {
 
 				glm::vec3 topleft, topright, botright, botleft;
 
-                topleft.x = -2*realLine[0].x / widthf +1;
-                topleft.y = -2*realLine[0].y / heightf +1;
-                topleft.z = 0;
-                topright.x = -2*realLine[1].x / widthf + 1;
-                topright.y = -2*realLine[1].y / heightf +1;
-                topright.z = 0;
+				topleft.x = -2*realLine[0].x / widthf +1;
+				topleft.y = -2*realLine[0].y / heightf +1;
+				topleft.z = 0;
+				topright.x = -2*realLine[1].x / widthf + 1;
+				topright.y = -2*realLine[1].y / heightf +1;
+				topright.z = 0;
 
-                botleft.x = -2*realLine[3].x / widthf +1;
-                botleft.y = -2*realLine[3].y / heightf +1;
-                botleft.z = 0;
-                botright.x = -2*realLine[2].x / widthf +1;
-                botright.y = -2*realLine[2].y / heightf +1;
-                botright.z = 0;
+				botleft.x = -2*realLine[3].x / widthf +1;
+				botleft.y = -2*realLine[3].y / heightf +1;
+				botleft.z = 0;
+				botright.x = -2*realLine[2].x / widthf +1;
+				botright.y = -2*realLine[2].y / heightf +1;
+				botright.z = 0;
 
-//				topleft.x = -2*patternStartTop[1].x / widthf +1;
-//				topleft.y = -2*patternStartTop[1].y / heightf +1;
-//				topleft.z = 0;
-//				topright.x = -2*patternLoopTop[1].x / widthf + 1;
-//				topright.y = -2*patternLoopTop[1].y / heightf +1;
-//				topright.z = 0;
-//
-//				botleft.x = -2*patternStartBot[0].x / widthf +1;
-//				botleft.y = -2*patternStartBot[0].y / heightf +1;
-//				botleft.z = 0;
-//				botright.x = -2*patternLoopBot[0].x / widthf +1;
-//				botright.y = -2*patternLoopBot[0].y / heightf +1;
-//				botright.z = 0;
+				//				topleft.x = -2*patternStartTop[1].x / widthf +1;
+				//				topleft.y = -2*patternStartTop[1].y / heightf +1;
+				//				topleft.z = 0;
+				//				topright.x = -2*patternLoopTop[1].x / widthf + 1;
+				//				topright.y = -2*patternLoopTop[1].y / heightf +1;
+				//				topright.z = 0;
+				//
+				//				botleft.x = -2*patternStartBot[0].x / widthf +1;
+				//				botleft.y = -2*patternStartBot[0].y / heightf +1;
+				//				botleft.z = 0;
+				//				botright.x = -2*patternLoopBot[0].x / widthf +1;
+				//				botright.y = -2*patternLoopBot[0].y / heightf +1;
+				//				botright.z = 0;
 
 
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 1.0));
@@ -430,71 +440,70 @@ int main(int argc, char** argv) {
 
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.5, 0.5));
 			}
-
 			//if(isCalibrated && i > 3)
-//			{
+			//			{
 
-				// TODO regarder autour de currentPosition les patterns détectés
+			// TODO regarder autour de currentPosition les patterns détectés
 
-				patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
-				glm::vec3 topleft, topright, botright, botleft;
-				// TODO : code a function to convertion.
-				topleft.x = -2*patternPositions.at(1).x / widthf + 1;
-				topleft.y = -2*patternPositions.at(1).y / heightf + 1;
-				topleft.z = 0;
-				topright.x = -2*patternPositions.at(0).x / widthf + 1;
-				topright.y = -2*patternPositions.at(0).y / heightf + 1;
-				topright.z = 0;
-				botright.x = -2*patternPositions.at(3).x / widthf + 1;
-				botright.y = -2*patternPositions.at(3).y / heightf + 1;
-				botright.z = 0;
-				botleft.x = -2*patternPositions.at(2).x / widthf + 1;
-				botleft.y = -2*patternPositions.at(2).y / heightf + 1;
-				botleft.z = 0;
-				//fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
+			patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
+			glm::vec3 topleft, topright, botright, botleft;
+			// TODO : code a function to convertion.
+			topleft.x = -2*patternPositions.at(1).x / widthf + 1;
+			topleft.y = -2*patternPositions.at(1).y / heightf + 1;
+			topleft.z = 0;
+			topright.x = -2*patternPositions.at(0).x / widthf + 1;
+			topright.y = -2*patternPositions.at(0).y / heightf + 1;
+			topright.z = 0;
+			botright.x = -2*patternPositions.at(3).x / widthf + 1;
+			botright.y = -2*patternPositions.at(3).y / heightf + 1;
+			botright.z = 0;
+			botleft.x = -2*patternPositions.at(2).x / widthf + 1;
+			botleft.y = -2*patternPositions.at(2).y / heightf + 1;
+			botleft.z = 0;
+			//fprintf(stderr, "pattern detected : TL(%f, %f), TR(%f, %f), BR(%f, %f), BL(%f, %f)\n", topleft.x, topleft.y, topright.x, topright.y, botright.x, botright.y, botleft.x, botleft.y);
 
-				//patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
+			//patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 
-				rectangle.setCorners(topleft, topright, botright, botleft);
-				rectangle.draw();
-				rectangle.resetCorners();
+			rectangle.setCorners(topleft, topright, botright, botleft);
+			rectangle.draw();
+			rectangle.resetCorners();
 
-				patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-				//playing song :
-				cerr<<"Pattern : "<<detectedPattern.at(i).id<<endl;
-				if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
-					// On regarde si au moins un coin du carré est entre lastPosition et currentPosition et le reste des points à droite de currentPosition.
-					// On fait l'homographie inverse pour recaler les points dans un repere simple.
-					std::vector<Point2f> simplePositions(4);
-					perspectiveTransform(patternPositions, simplePositions, gridInvHomography);
-					int nbIn = 0, nbOut = 0;
-					for(int j = 0; j < 4; ++j){
-						if(currentPosition > lastPosition){
-							if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
-								++nbOut;
-							} else if(simplePositions.at(j).x > lastPosition && simplePositions.at(j).x < currentPosition){
-								++nbIn;
-							} else if(simplePositions.at(j).x < lastPosition){
-								++nbOut;
-							}
-						} else {
-							if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
-								++nbOut;
-							} else if(simplePositions.at(j).x < currentPosition && simplePositions.at(j).x > -0.1 ){
-								++nbIn;
-							} else if(simplePositions.at(j).x > lastPosition){
-								++nbOut;
-							}
+			patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+			//playing song :
+			cerr<<"Pattern : "<<detectedPattern.at(i).id<<endl;
+			if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
+				// On regarde si au moins un coin du carré est entre lastPosition et currentPosition et le reste des points à droite de currentPosition.
+				// On fait l'homographie inverse pour recaler les points dans un repere simple.
+				std::vector<Point2f> simplePositions(4);
+				perspectiveTransform(patternPositions, simplePositions, gridInvHomography);
+				int nbIn = 0, nbOut = 0;
+				for(int j = 0; j < 4; ++j){
+					if(currentPosition > lastPosition){
+						if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
+							++nbOut;
+						} else if(simplePositions.at(j).x > lastPosition && simplePositions.at(j).x < currentPosition){
+							++nbIn;
+						} else if(simplePositions.at(j).x < lastPosition){
+							++nbOut;
+						}
+					} else {
+						if(simplePositions.at(j).y > 1.3 || simplePositions.at(j).y < -0.3 ){
+							++nbOut;
+						} else if(simplePositions.at(j).x < currentPosition && simplePositions.at(j).x > -0.1 ){
+							++nbIn;
+						} else if(simplePositions.at(j).x > lastPosition){
+							++nbOut;
 						}
 					}
-//					std::cerr<<"Nb in : "<<nbIn<<"\t nbOut : "<<nbOut<<std::endl;
-					if(nbOut == 0 && nbIn > 0){
-						std::cerr<<"Play sound for pattern : "<<detectedPattern.at(i).id<<std::endl;
-						soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
-					}
 				}
+				//					std::cerr<<"Nb in : "<<nbIn<<"\t nbOut : "<<nbOut<<std::endl;
+				if(nbOut == 0 && nbIn > 0){
+					std::cerr<<"Play sound for pattern : "<<detectedPattern.at(i).id<<std::endl;
+					soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+				}
+			}
 
-//			}
+			//			}
 
 		}
 
