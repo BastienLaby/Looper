@@ -58,7 +58,6 @@ int main(int argc, char** argv) {
 			camera = 0;
 	}
 
-
 	VideoCapture cap(camera);
 
 	if(!cap.isOpened())  // check if we succeeded
@@ -346,7 +345,7 @@ int main(int argc, char** argv) {
 				// Start, coin haut gauche
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
 				patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-			} else {
+			} else if( i == 0 ) {
 				allCornerDetected = false;
 			}
 
@@ -354,7 +353,7 @@ int main(int argc, char** argv) {
 				// Loop, coin haut droit
 				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 1.0, 0.0));
 				patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-			} else {
+			} else if( i == 1 ){
 				allCornerDetected = false;
 			}
 
@@ -362,7 +361,7 @@ int main(int argc, char** argv) {
 				// Start, coin bas gauche
 				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 0.0, 1.0));
 				patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-			} else {
+			} else if( i == 2 ){
 				allCornerDetected = false;
 			}
 
@@ -469,8 +468,9 @@ int main(int argc, char** argv) {
 			rectangle.resetCorners();
 
 			patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
+			cerr<<detectedPattern.at(i).id<<endl;
 			//playing song :
-			cerr<<"Pattern : "<<detectedPattern.at(i).id<<endl;
+
 			if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
 				// On regarde si au moins un coin du carré est entre lastPosition et currentPosition et le reste des points à droite de currentPosition.
 				// On fait l'homographie inverse pour recaler les points dans un repere simple.
