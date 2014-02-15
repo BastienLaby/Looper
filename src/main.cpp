@@ -195,8 +195,8 @@ int main(int argc, char** argv) {
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_A.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/PatternX.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternRe.png")] = soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternMi.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternBL.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
 
 
 	std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
@@ -439,14 +439,10 @@ int main(int argc, char** argv) {
 
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.5, 0.5));
 			}
-			//if(isCalibrated && i > 3)
-			//			{
-
-			// TODO regarder autour de currentPosition les patterns détectés
 
 			patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
 			glm::vec3 topleft, topright, botright, botleft;
-			// TODO : code a function to convertion.
+			// TODO : code a function to convert.
 			topleft.x = -2*patternPositions.at(1).x / widthf + 1;
 			topleft.y = -2*patternPositions.at(1).y / heightf + 1;
 			topleft.z = 0;
@@ -463,12 +459,7 @@ int main(int argc, char** argv) {
 
 			//patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 
-			rectangle.setCorners(topleft, topright, botright, botleft);
-			rectangle.draw();
-			rectangle.resetCorners();
-
 			patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
-			cerr<<detectedPattern.at(i).id<<endl;
 			//playing song :
 
 			if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
@@ -499,9 +490,15 @@ int main(int argc, char** argv) {
 				//					std::cerr<<"Nb in : "<<nbIn<<"\t nbOut : "<<nbOut<<std::endl;
 				if(nbOut == 0 && nbIn > 0){
 					std::cerr<<"Play sound for pattern : "<<detectedPattern.at(i).id<<std::endl;
+					patternShader.sendUniformVec3f("color", glm::vec3(0.5, 0.5, .5));
 					soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
 				}
 			}
+
+			rectangle.setCorners(topleft, topright, botright, botleft);
+			rectangle.draw();
+			rectangle.resetCorners();
+
 
 			//			}
 
