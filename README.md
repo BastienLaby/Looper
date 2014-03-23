@@ -6,7 +6,7 @@ Looper
 Installation (linux only)
 
   Move to the cloning directory path :
-  > cd cloning_path/Animus/
+  > cd cloning_path/Looper/
   
   If you don't have premake4, install it :
   > sudo apt-get install premake4
