@@ -23,4 +23,4 @@ Installation (linux only)
   > export LD_LIBRARY_PATH=cloning_path/Looper/lib/opencv2/lib/:$LD_LIBRARY_PATH
   
   Run the project :
-  > ./Animusd
+  > ./Looperd
