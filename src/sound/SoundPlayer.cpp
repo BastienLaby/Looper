@@ -19,8 +19,6 @@ namespace sound{
 
 /******** CLASS VARIABLE DECLARATIONS ********/
 
-FMOD::Channel *SoundPlayer::channel = 0;
-
 unsigned int SoundPlayer::ms = 0;
 unsigned int SoundPlayer::lenms = 0;
 bool SoundPlayer::playing = 0;
@@ -51,8 +49,6 @@ SoundPlayer::SoundPlayer() {
     errCheck();
 }
 
-
-// Load every sound before playing them
 size_t SoundPlayer::loadSound(const char * filename){
 
 	std::ifstream ifile(filename);
@@ -70,11 +66,13 @@ size_t SoundPlayer::loadSound(const char * filename){
     result = sounds[index]->setMode(FMOD_LOOP_OFF);
     errCheck();
 
+    channels.push_back(nullptr);
+
     return index+1;
 }
 
 
-void SoundPlayer::loadFromFolder(const char* directory){
+void SoundPlayer::loadFromFolder(const char* directory) {
 
 	struct dirent *lecture;
 	DIR *rep;
@@ -95,57 +93,15 @@ void SoundPlayer::loadFromFolder(const char* directory){
 
 }
 
-
-void SoundPlayer::play(size_t index){
-	if(index > 0){
+void SoundPlayer::play(size_t index) {
+	if(index > 0) {
+		FMOD::Channel* channel;
+		fprintf(stderr, "try to access channel %d of %d\n", index, channels.size());
 		result = system->playSound(FMOD_CHANNEL_FREE, sounds[index-1], 0, &channel);
+		channels.at(index-1) = channel;
 		errCheck();
 	}
 }
-
-
-
-void SoundPlayer::updateState(void){
-	system->update();
-
-	if (channel)
-	{
-		FMOD::Sound *currentsound = 0;
-
-		result = channel->isPlaying(&playing);
-		if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-		{
-			errCheck();
-		}
-
-		result = channel->getPaused(&paused);
-		if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-		{
-			errCheck();
-		}
-
-		result = channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
-		if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-		{
-			errCheck();
-		}
-
-		channel->getCurrentSound(&currentsound);
-		if (currentsound)
-		{
-			result = currentsound->getLength(&lenms, FMOD_TIMEUNIT_MS);
-			if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-			{
-				errCheck();
-			}
-		}
-	}
-
-	system->getChannelsPlaying(&channelsplaying);
-
-}
-
-
 
 /******** SETTERS *******/
 void SoundPlayer::loop(size_t index){
@@ -179,6 +135,11 @@ SoundPlayer::~SoundPlayer(void){
 	errCheck();
 	result = system->release();
 	errCheck();
+	for(size_t i = 0; i < channels.size(); i++)
+	{
+		if(channels.at(i) != nullptr)
+			delete channels.at(i);
+	}
 }
 
 }

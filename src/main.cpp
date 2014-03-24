@@ -194,18 +194,22 @@ int main(int argc, char** argv) {
 	mapSounds.insert(std::make_pair("media/img/PatternBL.png", ""));
 	mapSounds.insert(std::make_pair("media/img/Pattern_Loop.png", ""));
 	mapSounds.insert(std::make_pair("media/img/Pattern_A.png", ""));
-	mapSounds.insert(std::make_pair("media/img/PatternX.png", ""));
+	mapSounds.insert(std::make_pair("media/img/Pattern7.png", ""));
 
-	mapSounds.insert(std::make_pair("media/img/Pattern1.png", "grossecaisse.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern2.png", "caisseclair.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern3.png", "bell.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern4.png", "tumba.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern1.png", "caisseclair.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern15.png", "bell.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Patter12.png", "tumba.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern5.png", "grossecaisse.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern6.png", "castagnettes.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern9.png", "tambourin.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern10.png", "03 Thrift Shop (feat. Wanz).mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern11.png", "castagnettes.mp3"));
 
 	
 
 	for (std::map<const char*, const char*>::iterator it = mapSounds.begin(); it != mapSounds.end(); ++it)
 	{
-		if(it->second == "")
+		if(strcmp(it->second, "") == 0)
 			patternSoundAssociation[pattern.loadPattern(it->first)] = 0;
 		else
 			patternSoundAssociation[pattern.loadPattern(it->first)] = soundPlayer.loadSound((MUSIC_PATH + it->second).c_str());
@@ -228,7 +232,7 @@ int main(int argc, char** argv) {
 
 	double loopStart = glfwGetTime() - 0.02; // Last time when the loop started
 	double lastPosition = 0.;
-	double loopTime = 3.; // Time in s before looping
+	double loopTime = 1.9; // Time in s before looping
 
 
 	do

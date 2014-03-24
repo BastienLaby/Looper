@@ -105,7 +105,7 @@ class SoundPlayer {
 private:
     FMOD::System* system;
     std::vector<FMOD::Sound *> sounds;
-    static FMOD::Channel *channel;
+    std::vector<FMOD::Channel*> channels;
     unsigned int version;
 
 public:
@@ -123,8 +123,6 @@ public:
     size_t loadSound(const char* directory);
     void loadFromFolder(const char* filename);
     void play(size_t index);
-
-    void updateState(void);
 
     // setters
     void loop(size_t index);
