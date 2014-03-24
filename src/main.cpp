@@ -193,10 +193,10 @@ int main(int argc, char** argv) {
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
 	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_A.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternX.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternBL.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternX.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_open_hi_hat.mp3").c_str()); // Pourquoi T_T ?
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_closed_hi_hat.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_open_hi_hat.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/PatternBL.png")] = soundPlayer.loadSound((MUSIC_PATH+"human_beatbox_snare_drum.mp3").c_str());
 
 
 	std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
 	double fixed_thresh = 40;
 	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
 	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
-	double confidenceThreshold = 0.5;
+	double confidenceThreshold = 0.45;
 	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
