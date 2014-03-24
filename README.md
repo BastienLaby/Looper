@@ -6,7 +6,7 @@ Looper
 Installation (linux only)
 
   Move to the cloning directory path :
-  > cd cloning_path/Animus/
+  > cd cloning_path/Looper/
   
   If you don't have premake4, install it :
   > sudo apt-get install premake4
@@ -23,4 +23,4 @@ Installation (linux only)
   > export LD_LIBRARY_PATH=cloning_path/Looper/lib/opencv2/lib/:$LD_LIBRARY_PATH
   
   Run the project :
-  > ./Animusd
+  > ./Looperd
