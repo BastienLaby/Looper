@@ -4,6 +4,8 @@
 #include "opencv/cameraparams.h"
 #include "opencv/patterndetector.h"
 #include <sstream>
+#include <iterator>
+#include <map>
 
 #include "glew/glew.h"
 #include <GL/gl.h>
@@ -188,24 +190,36 @@ int main(int argc, char** argv) {
 	sound::SoundPlayer soundPlayer;
 	Pattern pattern;
 
+	std::map<const char*, const char*> mapSounds;
+	mapSounds.insert(std::make_pair("media/img/PatternBL.png", ""));
+	mapSounds.insert(std::make_pair("media/img/Pattern_Loop.png", ""));
+	mapSounds.insert(std::make_pair("media/img/Pattern_A.png", ""));
+	mapSounds.insert(std::make_pair("media/img/PatternX.png", ""));
 
-	// associate and load patterns with sounds
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_StartTop.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_StartBottom.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_LoopTop.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_LoopBottom.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"tumba.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern2.png")] = soundPlayer.loadSound((MUSIC_PATH+"castagnettes.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern3.png")] = soundPlayer.loadSound((MUSIC_PATH+"bell.mp3").c_str());
+	mapSounds.insert(std::make_pair("media/img/Pattern1.png", "grossecaisse.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern2.png", "caisseclair.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern3.png", "bell.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern4.png", "tumba.mp3"));
+
+	
+
+	for (std::map<const char*, const char*>::iterator it = mapSounds.begin(); it != mapSounds.end(); ++it)
+	{
+		if(it->second == "")
+			patternSoundAssociation[pattern.loadPattern(it->first)] = 0;
+		else
+			patternSoundAssociation[pattern.loadPattern(it->first)] = soundPlayer.loadSound((MUSIC_PATH + it->second).c_str());
+	}
+
 
 
 	std::cerr << "pattern library size : " << pattern.getPatterns().size() << std::endl;
 
 	double fixed_thresh = 40;
-	double adapt_thresh = 5; //non-used with FIXED_THRESHOLD mode
-	int adapt_block_size = 45; //non-used with FIXED_THRESHOLD mode
-	double confidenceThreshold = 0.5;
-	int mode = 2; //1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
+	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
+	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
+	double confidenceThreshold = 0.45;
+	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
 	std::vector<cv::Point2f> patternPositions, patternStartTop, patternStartBot, patternLoopTop, patternLoopBot;

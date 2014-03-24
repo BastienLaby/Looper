@@ -125,7 +125,7 @@ void __Timer__::reset(){
 void __Timer__::dump(bool r){
 	// TODO write report into the file if there is one or in the standard output
 	long finalTime = SDL_GetTicks();
-	long duration = (float)(finalTime - mStartTime) / 1000.f;
+	float duration = (float)(finalTime - mStartTime) / 1000.f;
 	std::ofstream output;
 	if(mFilename != ""){
 		output.open(mFilename.c_str(), std::ios::out | std::ios::app);

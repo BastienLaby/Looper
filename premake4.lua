@@ -11,6 +11,7 @@ solution "TablaturnSolution"
 
       libdirs { "lib/**" }
       links {"glfw", "glew", "stb", "imgui"}
+      buildoptions {"-std=c++0x"}
 
       defines { "GLEW_STATIC" }
 
