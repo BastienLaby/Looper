@@ -190,22 +190,22 @@ int main(int argc, char** argv) {
 
 
 	// associate and load patterns with sounds
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Start.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_Loop.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_A.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternX.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternDo.png")] = soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
-	patternSoundAssociation[pattern.loadPattern("media/img/PatternBL.png")] = soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_StartTop.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"36 - Nami_Login_Music_v1.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_StartBottom.png")] = 0; // soundPlayer.loadSound((MUSIC_PATH+"03 Thrift Shop (feat. Wanz).mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_LoopTop.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Get Jinxed.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern_LoopBottom.png")] = 0; //soundPlayer.loadSound((MUSIC_PATH+"Vi_Music_Master_v16.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern1.png")] = soundPlayer.loadSound((MUSIC_PATH+"tumba.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern2.png")] = soundPlayer.loadSound((MUSIC_PATH+"castagnettes.mp3").c_str());
+	patternSoundAssociation[pattern.loadPattern("media/img/Pattern3.png")] = soundPlayer.loadSound((MUSIC_PATH+"bell.mp3").c_str());
 
 
-	std::cerr<<"pattern library size : "<<pattern.getPatterns().size()<<std::endl;
+	std::cerr << "pattern library size : " << pattern.getPatterns().size() << std::endl;
 
 	double fixed_thresh = 40;
-	double adapt_thresh = 5;//non-used with FIXED_THRESHOLD mode
-	int adapt_block_size = 45;//non-used with FIXED_THRESHOLD mode
+	double adapt_thresh = 5; //non-used with FIXED_THRESHOLD mode
+	int adapt_block_size = 45; //non-used with FIXED_THRESHOLD mode
 	double confidenceThreshold = 0.5;
-	int mode = 2;//1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
+	int mode = 2; //1:FIXED_THRESHOLD, 2: ADAPTIVE_THRESHOLD
 
 	PatternDetector myDetector( fixed_thresh, adapt_thresh, adapt_block_size, confidenceThreshold, Pattern::patternSize, mode);
 	std::vector<cv::Point2f> patternPositions, patternStartTop, patternStartBot, patternLoopTop, patternLoopBot;
@@ -219,11 +219,8 @@ int main(int argc, char** argv) {
 
 	do
 	{
-
 		if(glfwGetTime() - loopStart > loopTime)
-		{
 			loopStart += loopTime;
-		}
 		double currentPosition = (glfwGetTime() - loopStart) / loopTime;
 
 		//
@@ -318,9 +315,7 @@ int main(int argc, char** argv) {
 		// Detect Pattern
 		//
 
-
 		timer.breakpoint("Pattern detection");
-
 
 		renderer.useShaderProgram(patternShader);
 		patternShader.sendUniformMatrix4fv("Projection", projection);
@@ -333,32 +328,36 @@ int main(int argc, char** argv) {
 
 		// sort the detectedPattern to get the start and loop patterns first
 		sort(detectedPattern.begin(), detectedPattern.end(), sortPattern);
-		bool isCalibrated = false, allCornerDetected = true;
+		bool isCalibrated = false;
+		bool allCornerDetected = true;
 		Mat gridHomography, gridInvHomography;
 
 
-		//augment the input frame (and print out the properties of pattern if you want)
-		for (unsigned int i = 0; i < detectedPattern.size(); i++){
+		// For each detected pattern
+		for (unsigned int i = 0; i < detectedPattern.size(); i++) {
 
-			// TODO calibrer la grille
+			//
+			// Corners detection
+			//
+
+			// Start Top Corner > Red
 			if(i == 0 && detectedPattern.at(i).id == 1 ) {
-				// Start, coin haut gauche
-				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 0.0));
+				patternShader.sendUniformVec3f("color", glm::vec3(0.8, 0.0, 0.0));
 				patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 0 ) {
 				allCornerDetected = false;
 			}
 
-			if( i == 1 && detectedPattern.at(i).id == 2 ){
-				// Loop, coin haut droit
-				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 1.0, 0.0));
+			// Start Bottom Corner -> Red
+			if( i == 1 && detectedPattern.at(i).id == 2 ) {
+				patternShader.sendUniformVec3f("color", glm::vec3(0.4, 1.0, 0.0));
 				patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 1 ){
 				allCornerDetected = false;
 			}
 
+			// Loop Top Corner -> Blue
 			if( i == 2 && detectedPattern.at(i).id == 3 ){
-				// Start, coin bas gauche
 				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 0.0, 1.0));
 				patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 2 ){
@@ -370,8 +369,8 @@ int main(int argc, char** argv) {
 				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
 			}
 
-			if( i == 3 && detectedPattern.at(i).id == 4 && allCornerDetected){
-				// Loop, coin bas droit
+			if( i == 3 && detectedPattern.at(i).id == 4 && allCornerDetected) {
+
 				patternLoopBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 				isCalibrated = true;
 				vector<Point2f> srcPoints, dstPoints;
