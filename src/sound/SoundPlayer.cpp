@@ -96,7 +96,6 @@ void SoundPlayer::loadFromFolder(const char* directory) {
 void SoundPlayer::play(size_t index) {
 	if(index > 0) {
 		FMOD::Channel* channel;
-		fprintf(stderr, "try to access channel %d of %d\n", index, channels.size());
 		result = system->playSound(FMOD_CHANNEL_FREE, sounds[index-1], 0, &channel);
 		channels.at(index-1) = channel;
 		errCheck();
@@ -140,6 +139,10 @@ SoundPlayer::~SoundPlayer(void){
 		if(channels.at(i) != nullptr)
 			delete channels.at(i);
 	}
+}
+
+void SoundPlayer::update(){
+	system->update();
 }
 
 }

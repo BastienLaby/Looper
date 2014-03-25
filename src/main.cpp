@@ -191,21 +191,17 @@ int main(int argc, char** argv) {
 	Pattern pattern;
 
 	std::map<const char*, const char*> mapSounds;
+	mapSounds.insert(std::make_pair("media/img/PatternTL.png", ""));
+	mapSounds.insert(std::make_pair("media/img/PatternTR.png", ""));
 	mapSounds.insert(std::make_pair("media/img/PatternBL.png", ""));
-	mapSounds.insert(std::make_pair("media/img/Pattern_Loop.png", ""));
-	mapSounds.insert(std::make_pair("media/img/Pattern_A.png", ""));
-	mapSounds.insert(std::make_pair("media/img/Pattern7.png", ""));
+	mapSounds.insert(std::make_pair("media/img/PatternBR.png", ""));
 
-	mapSounds.insert(std::make_pair("media/img/Pattern1.png", "caisseclair.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern15.png", "bell.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Patter12.png", "tumba.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern5.png", "grossecaisse.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern6.png", "castagnettes.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern9.png", "tambourin.mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern10.png", "03 Thrift Shop (feat. Wanz).mp3"));
-	mapSounds.insert(std::make_pair("media/img/Pattern11.png", "castagnettes.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern_caisse_claire.png", "caisseclaire.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern_grosse_caisse.png", "grossecaisse.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern_triangle.png", "triangle.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern_cymbale.png", "cymballe.mp3"));
+	mapSounds.insert(std::make_pair("media/img/Pattern_castagnettes.png", "castagnettes.mp3"));
 
-	
 
 	for (std::map<const char*, const char*>::iterator it = mapSounds.begin(); it != mapSounds.end(); ++it)
 	{
@@ -478,8 +474,10 @@ int main(int argc, char** argv) {
 
 			patternPositions = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			//playing song :
+//			if(isCalibrated && i > 3) std::cerr<<detectedPattern.at(i).id - 1<<std::endl;
 
-			if ( patternSoundAssociation.find(detectedPattern.at(i).id) != patternSoundAssociation.end() && isCalibrated) {
+			unsigned int patternId = (detectedPattern.at(i).id - 1 > patternSoundAssociation.size()) ? patternSoundAssociation.size() : detectedPattern.at(i).id - 1;
+			if ( patternSoundAssociation.find(patternId) != patternSoundAssociation.end() && isCalibrated && i > 3) {
 				// On regarde si au moins un coin du carré est entre lastPosition et currentPosition et le reste des points à droite de currentPosition.
 				// On fait l'homographie inverse pour recaler les points dans un repere simple.
 				std::vector<Point2f> simplePositions(4);
@@ -506,9 +504,9 @@ int main(int argc, char** argv) {
 				}
 				//					std::cerr<<"Nb in : "<<nbIn<<"\t nbOut : "<<nbOut<<std::endl;
 				if(nbOut == 0 && nbIn > 0){
-					std::cerr<<"Play sound for pattern : "<<detectedPattern.at(i).id<<std::endl;
+//					std::cerr<<"Play sound " << patternSoundAssociation[patternId] <<" for pattern "<<patternId<<std::endl;
 					patternShader.sendUniformVec3f("color", glm::vec3(0.5, 0.5, .5));
-					soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
+					soundPlayer.play(patternSoundAssociation[patternId]);
 				}
 			}
 
@@ -531,6 +529,8 @@ int main(int argc, char** argv) {
 		//
 		// Draw UI
 		//
+
+		soundPlayer.update();
 
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
