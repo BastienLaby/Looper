@@ -79,6 +79,7 @@ int main(int argc, char** argv) {
 		fprintf( stderr, "Failed to initialize GLFW\n" );
 		exit( EXIT_FAILURE );
 	}
+
 	int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	float widthf = (float) width;
@@ -93,7 +94,7 @@ int main(int argc, char** argv) {
 	// Open window and create GL Context
 	//
 
-	if( !glfwOpenWindow( width, height, 0,0,0,0, 24, 0, GLFW_WINDOW ) )
+	if( !glfwOpenWindow( width, height, 0,0,0,0, 24, 0, GLFW_FULLSCREEN ) )
 	{
 		fprintf( stderr, "Failed to open GLFW window\n" );
 
@@ -360,7 +361,7 @@ int main(int argc, char** argv) {
 
 			// Start Top Corner > Red
 			if(i == 0 && detectedPattern.at(i).id == 1 ) {
-				patternShader.sendUniformVec3f("color", glm::vec3(0.8, 0.0, 0.0));
+				patternShader.sendUniformVec4f("color", glm::vec4(1.0, 0.0, 0.0, 0.25));
 				patternStartTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 0 ) {
 				allCornerDetected = false;
@@ -368,7 +369,7 @@ int main(int argc, char** argv) {
 
 			// Start Bottom Corner -> Red
 			if( i == 1 && detectedPattern.at(i).id == 2 ) {
-				patternShader.sendUniformVec3f("color", glm::vec3(0.4, 1.0, 0.0));
+				patternShader.sendUniformVec4f("color", glm::vec4(1.0, 0.0, 0.0, 0.50));
 				patternLoopTop = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 1 ){
 				allCornerDetected = false;
@@ -376,7 +377,7 @@ int main(int argc, char** argv) {
 
 			// Loop Top Corner -> Blue
 			if( i == 2 && detectedPattern.at(i).id == 3 ){
-				patternShader.sendUniformVec3f("color", glm::vec3(0.0, 0.0, 1.0));
+				patternShader.sendUniformVec4f("color", glm::vec4(0.0, 0.0, 0.0, 0.75));
 				patternStartBot = detectedPattern.at(i).getPositions( frame, cameraMatrix, distortions);
 			} else if( i == 2 ){
 				allCornerDetected = false;
@@ -384,7 +385,7 @@ int main(int argc, char** argv) {
 
 			if( i > 3)
 			{
-				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 1.0, 0.0));
+				patternShader.sendUniformVec4f("color", glm::vec4(1.0, 1.0, 0.0, 1.0));
 			}
 
 			if( i == 3 && detectedPattern.at(i).id == 4 && allCornerDetected) {
@@ -448,13 +449,13 @@ int main(int argc, char** argv) {
 				//				botright.z = 0;
 
 
-				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.0, 1.0));
+				patternShader.sendUniformVec4f("color", glm::vec4(1.0, 0.5, 0.0, 0.8));
 
 				rectangle.setCorners(topleft, topright, botright, botleft);
 				rectangle.draw();
 				rectangle.resetCorners();
 
-				patternShader.sendUniformVec3f("color", glm::vec3(1.0, 0.5, 0.5));
+				patternShader.sendUniformVec4f("color", glm::vec4(1.0, 0.0, 0.0, 1.0));
 			}
 
 			patternPositions = detectedPattern.at(i).getPositions(frame, cameraMatrix, distortions);
@@ -507,13 +508,17 @@ int main(int argc, char** argv) {
 				//					std::cerr<<"Nb in : "<<nbIn<<"\t nbOut : "<<nbOut<<std::endl;
 				if(nbOut == 0 && nbIn > 0){
 					std::cerr<<"Play sound for pattern : "<<detectedPattern.at(i).id<<std::endl;
-					patternShader.sendUniformVec3f("color", glm::vec3(0.5, 0.5, .5));
+					patternShader.sendUniformVec4f("color", glm::vec4(0.5, 0.5, 0.5, 0.5));
 					soundPlayer.play(patternSoundAssociation[detectedPattern.at(i).id]);
 				}
 			}
 
 			rectangle.setCorners(topleft, topright, botright, botleft);
+
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			rectangle.draw();
+			glDisable(GL_BLEND);
 			rectangle.resetCorners();
 
 
