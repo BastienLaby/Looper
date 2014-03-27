@@ -124,6 +124,8 @@ public:
     void loadFromFolder(const char* filename);
     void play(size_t index);
 
+    void update();
+
     // setters
     void loop(size_t index);
     void removeLoop(size_t index);
